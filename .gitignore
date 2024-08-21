@@ -1,0 +1,9 @@
+config.yaml
+venv/
+Moneytree-Trading-Bot/__pycache__/
+Moneytree-Trading-Bot/node_modules/
+Moneytree-Trading-Bot/package-lock.json
+logs/
+etherscan_page.html
+.env
+__pycache__/

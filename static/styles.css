@@ -1,0 +1,265 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    padding-top: 20px;
+    margin: 0;
+    overflow-x: hidden; /* Hide horizontal overflow */
+}
+.header {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #1e1e1e;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+.header img {
+    height: 60px;
+    margin-right: 15px;
+}
+.header h1 {
+    font-size: 24px;
+    color: #e0e0e0;
+    margin: 0;
+    font-weight: bold;
+}
+.logout-form {
+    margin-left: auto;
+}
+.logout-button {
+    margin-left: auto;
+    margin-right: 30px;
+    background-color: #dc3545;
+    color: #ffffff;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.logout-button:hover {
+    background-color: #c82333;
+    cursor: pointer;
+}
+
+/* Tab Buttons */
+.tabs {
+    display: flex;
+    justify-content: center;
+    background-color: #333;
+    padding: 10px 0;
+    margin-top: 80px; /* Leave space for the fixed header */
+}
+.tab-button {
+    background-color: #444;
+    color: #ffffff;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 0 5px;
+    border-radius: 5px 5px 0 0;
+}
+.tab-button.active {
+    background-color: #FFD700; /* Gold for active tab */
+    color: #000000;
+}
+.tab-button:hover {
+    background-color: #555;
+}
+
+/* Content Panels */
+.content-container {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin-top: 0;
+}
+.tab-content {
+    width: 60%;
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+.no-panel {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.panel-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.panel-header img {
+    height: 50px;
+    margin-right: 15px;
+}
+.panel-header h2 {
+    font-size: 24px;
+    color: #ffffff;
+    margin: 0;
+    font-weight: bold;
+}
+
+/* Buttons and Inputs */
+.control-panel button{
+    width: 30%; /* Make buttons narrower */
+    padding: 8px; /* Reduce padding to make them appear more compact */
+    border-radius: 5px;
+    border: none;
+    background-color: #007bff;
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+.control-panel button:hover, input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+.log-container {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #62326e5d;
+    border-radius: 8px;
+    height: 300px;
+    overflow-y: auto;
+    color: #ffffff;
+}
+summary {
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Table styling */
+label {
+    display: block;
+    margin-top: 10px;
+    color: #e0e0e0;
+}
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #333;
+    color: #ffffff;
+    box-sizing: border-box;
+}
+table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #333;
+}
+th {
+    background-color: #333;
+    color: #e0e0e0;
+}
+td {
+    background-color: #2e2e2e;
+}
+th.name, td.name {
+    width: 150px;
+    white-space: nowrap;
+}
+input[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: block;
+    margin: 20px auto;
+}
+input[type="submit"]:hover {
+    background-color: #45a049;
+}
+/* Image Container and Tilting Images */
+.image-container {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    margin: 0 auto;
+    perspective: 1000px;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+}
+.image-container img {
+    position: absolute;
+    transition: transform 0.1s ease-in-out;
+    width: 100%; /* Set image size, adjust as needed */
+    height: auto;
+    display: block;
+    will-change: transform;
+}
+.front-image {
+    z-index: 3;
+    top: 200px;
+    transform: rotate(0deg);
+}
+.middle-image {
+    z-index: 2;
+    top: 0px;
+    left: 500px;
+    transform: rotate(0deg);
+}
+.back-image {
+    z-index: 1;
+    top: 0px;
+    left: -500px;
+    transform: rotate(0deg);
+}
+.image-container img:hover {
+    transform: rotateY(10deg) rotateX(10deg); /* Tilt the image by 10 degrees on hover */
+}
+#StatusIndicator {
+    margin-left: auto;
+    margin-right: 10px;
+    font-size: 16px;
+}
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #3498db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-right: 5px;
+}
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.centered-text {
+    display: flex;
+    justify-content: center; /* Horizontally center */
+    align-items: center;     /* Vertically center */
+    height: 100vh;           /* Full viewport height (optional, adjust as needed) */
+    text-align: center;      /* Center the text */
+}

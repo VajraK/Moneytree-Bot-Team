@@ -1,0 +1,125 @@
+<details>
+    <summary>Ethereum and Uniswap settings</summary>
+    <label for="ETEREUM_NODE_URL">Ethereum Node URL:</label>
+    <input type="text" name="ETEREUM_NODE_URL" value="{{ config.ETEREUM_NODE_URL }}">
+
+    <label for="WETH_ADDRESS">WETH Address:</label>
+    <input type="text" name="WETH_ADDRESS" value="{{ config.WETH_ADDRESS }}">
+
+    <label for="UNISWAP_V2_FACTORY_ADDRESS">Uniswap V2 Factory Address:</label>
+    <input type="text" name="UNISWAP_V2_FACTORY_ADDRESS" value="{{ config.UNISWAP_V2_FACTORY_ADDRESS }}">
+
+    <label for="UNISWAP_V3_FACTORY_ADDRESS">Uniswap V3 Factory Address:</label>
+    <input type="text" name="UNISWAP_V3_FACTORY_ADDRESS" value="{{ config.UNISWAP_V3_FACTORY_ADDRESS }}">
+
+    <label for="CHAINLINK_ETH_USD_FEED">Chainlink ETH/USD Feed:</label>
+    <input type="text" name="CHAINLINK_ETH_USD_FEED" value="{{ config.CHAINLINK_ETH_USD_FEED }}">
+</details>
+
+<details>
+    <summary>Wallet configuration</summary>
+    <label for="WALLET_PRIVATE_KEY">Wallet Private Key:</label>
+    <input type="text" name="WALLET_PRIVATE_KEY" value="{{ config.WALLET_PRIVATE_KEY }}">
+</details>
+
+<details>
+    <summary>Trading parameters</summary>
+    <label for="AMOUNT_OF_ETH">Amount of ETH:</label>
+    <input type="text" name="AMOUNT_OF_ETH" step="0.01" value="{{ config.AMOUNT_OF_ETH }}">
+
+    <label for="MOONBAG">Moonbag:</label>
+    <input type="text" name="MOONBAG" step="0.01" value="{{ config.MOONBAG }}">
+
+    <label for="BASE_FEE_MULTIPLIER">Base Fee Multiplier:</label>
+    <input type="text" name="BASE_FEE_MULTIPLIER" value="{{ config.BASE_FEE_MULTIPLIER }}">
+
+    <label for="PRIORITY_FEE_MULTIPLIER">Priority Fee Multiplier:</label>
+    <input type="text" name="PRIORITY_FEE_MULTIPLIER" value="{{ config.PRIORITY_FEE_MULTIPLIER }}">
+
+    <label for="TOTAL_FEE_MULTIPLIER">Total Fee Multiplier:</label>
+    <input type="text" name="TOTAL_FEE_MULTIPLIER" value="{{ config.TOTAL_FEE_MULTIPLIER }}">
+
+    <label for="SLIPPAGE_TOLERANCE">Slippage Tolerance:</label>
+    <input type="text" name="SLIPPAGE_TOLERANCE" value="{{ config.SLIPPAGE_TOLERANCE }}">
+
+    <label for="PRICE_INCREASE_THRESHOLD">Price Increase Threshold:</label>
+    <input type="text" name="PRICE_INCREASE_THRESHOLD" value="{{ config.PRICE_INCREASE_THRESHOLD }}">
+
+    <label for="PRICE_DECREASE_THRESHOLD">Price Decrease Threshold:</label>
+    <input type="text" name="PRICE_DECREASE_THRESHOLD" value="{{ config.PRICE_DECREASE_THRESHOLD }}">
+
+    <label for="NO_CHANGE_THRESHOLD_PERCENT">No Change Threshold Percent:</label>
+    <input type="text" name="NO_CHANGE_THRESHOLD_PERCENT" value="{{ config.NO_CHANGE_THRESHOLD_PERCENT }}">
+
+    <label for="NO_CHANGE_TIME_MINUTES">No Change Time (Minutes):</label>
+    <input type="text" name="NO_CHANGE_TIME_MINUTES" value="{{ config.NO_CHANGE_TIME_MINUTES }}">
+
+    <label for="MIN_MARKET_CAP">Min Market Cap:</label>
+    <input type="text" name="MIN_MARKET_CAP" value="{{ config.MIN_MARKET_CAP }}">
+
+    <label for="MAX_MARKET_CAP">Max Market Cap:</label>
+    <input type="text" name="MAX_MARKET_CAP" value="{{ config.MAX_MARKET_CAP }}">
+</details>
+
+
+<details>
+    <summary>Telegram bots configuration</summary>
+    <label for="MTB_TELEGRAM_BOT_TOKEN">MTB Telegram Bot Token:</label>
+    <input type="text" name="MTB_TELEGRAM_BOT_TOKEN" value="{{ config.MTB_TELEGRAM_BOT_TOKEN }}">
+
+    <label for="MTB_CHAT_ID">MTB Chat ID:</label>
+    <input type="text" name="MTB_CHAT_ID" value="{{ config.MTB_CHAT_ID }}">
+
+    <label for="MTdB_TELEGRAM_BOT_TOKEN">MTdB Telegram Bot Token:</label>
+    <input type="text" name="MTdB_TELEGRAM_BOT_TOKEN" value="{{ config.MTdB_TELEGRAM_BOT_TOKEN }}">
+
+    <label for="MTdB_CHAT_ID">MTdB Chat ID:</label>
+    <input type="text" name="MTdB_CHAT_ID" value="{{ config.MTdB_CHAT_ID }}">
+</details>
+
+<details>
+    <summary>Feature toggles</summary>
+    <label for="SEND_TELEGRAM_MESSAGES">Send Telegram Messages [MTB/MTdB]:</label>
+    <input type="checkbox" name="SEND_TELEGRAM_MESSAGES" value="true" {% if config.SEND_TELEGRAM_MESSAGES %} checked {% endif %}>
+
+    <label for="ALLOW_SWAP_MESSAGES_ONLY">Allow Swap Messages Only [MTB]:</label>
+    <input type="checkbox" name="ALLOW_SWAP_MESSAGES_ONLY" value="true" {% if config.ALLOW_SWAP_MESSAGES_ONLY %} checked {% endif %}>
+
+    <label for="ALLOW_AGGREGATED_MESSAGES_ALSO">Allow Aggregated Messages Also [MTB]:</label>
+    <input type="checkbox" name="ALLOW_AGGREGATED_MESSAGES_ALSO" value="true" {% if config.ALLOW_AGGREGATED_MESSAGES_ALSO %} checked {% endif %}>
+
+    <label for="ALLOW_MTDB_INTERACTION">Allow MTdB Interaction [MTB]:</label>
+    <input type="checkbox" name="ALLOW_MTDB_INTERACTION" value="true" {% if config.ALLOW_MTDB_INTERACTION %} checked {% endif %}>
+
+    <label for="ALLOW_MULTIPLE_TRANSACTIONS">Allow Multiple Transactions [MTdB]:</label>
+    <input type="checkbox" name="ALLOW_MULTIPLE_TRANSACTIONS" value="true" {% if config.ALLOW_MULTIPLE_TRANSACTIONS %} checked {% endif %}>
+
+    <label for="ENABLE_MARKET_CAP_FILTER">Enable Market Cap Filter [MTdB]:</label>
+    <input type="checkbox" name="ENABLE_MARKET_CAP_FILTER" value="true" {% if config.ENABLE_MARKET_CAP_FILTER %} checked {% endif %}>
+
+    <label for="ENABLE_PRICE_CHANGE_CHECKER">Enable Price Change Checker [MTdB]:</label>
+    <input type="checkbox" name="ENABLE_PRICE_CHANGE_CHECKER" value="true" {% if config.ENABLE_PRICE_CHANGE_CHECKER %} checked {% endif %}>
+
+    <label for="ENABLE_TRADING">Enable Trading [MTdB]:</label>
+    <input type="checkbox" name="ENABLE_TRADING" value="true" {% if config.ENABLE_TRADING %} checked {% endif %}>
+</details>
+
+<details>
+    <summary>Monitored Addresses</summary>
+        <table>
+            <tr>
+                <th>Address</th>
+                <th class="name">Name</th>
+            </tr>
+            {% for address, name in config.ADDRESSES_TO_MONITOR.items() %}
+            <tr>
+                <td><input type="text" name="addresses" value="{{ address }}"></td>
+                <td class="name"><input type="text" name="names" value="{{ name }}"></td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td><input type="text" name="addresses" placeholder="New Address"></td>
+                <td class="name"><input type="text" name="names" placeholder="New Name"></td>
+            </tr>
+        </table>
+</details>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moneytree Bot Console</title>
+    <link rel="icon" href="{{ url_for('static', filename='MBC.png') }}" type="image/x-icon">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .top-bar {
+            background-color: #1f1f1f;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        .top-bar img {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .top-bar h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #ffffff;
+        }
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 60px);
+            padding: 20px;
+        }
+        .login-container form {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%; /* Adjust width to fit within the container */
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            box-sizing: border-box; /* Ensures padding is included in the width */
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #007bff;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <img src="{{ url_for('static', filename='MBC.png') }}" alt="MBC Logo">
+        <h1>Moneytree Bot Console</h1>
+    </div>
+    <div class="login-container">
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>
