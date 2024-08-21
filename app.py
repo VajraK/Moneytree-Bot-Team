@@ -13,7 +13,7 @@ from redis import Redis
 from flask_session import Session 
 
 # Setup logging
-logging.basicConfig(filename='app.log', level=logging.DEBUG)
+logging.basicConfig(filename='logs/app.log', level=logging.DEBUG)
 
 # Importing helper functions from pieces/config.py
 from pieces.config import (

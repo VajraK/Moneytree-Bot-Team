@@ -188,7 +188,7 @@ def buy_token(token_address, amount_eth):
         # Run DexAnalyzer Scraper with retry logic
         scam_detected = retry_scam_check(token_address)
         if scam_detected:
-            return None, None, None
+            return None, None, None, None
 
         # Check initial ETH balance before buy
         initial_eth_balance = check_eth_balance()
@@ -284,7 +284,7 @@ def buy_token(token_address, amount_eth):
 
     except Exception as e:
         logging.error(f"Failed to execute swap: {e}")
-        return None, None, None
+        return None, None, None, None
 
 def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=False):
     try:

@@ -264,7 +264,7 @@ async def transaction():
                     logging.info(f"Buy transaction completed with hash: {buy_tx_hash}, token amount: {token_amount}, initial eth balance: {initial_eth_balance}, initial price: {initial_price}.")
 
                     # If buy_tx_hash is None, skip the rest of the process
-                    if buy_tx_hash is None:
+                    if buy_tx_hash is None or token_amount is None:
                         logging.info(f"Skipping further actions since the buy was skipped.")
                         return jsonify({'status': 'success', 'reason': 'Buy was skipped'}), 200
 
