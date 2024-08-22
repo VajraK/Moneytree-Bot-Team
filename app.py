@@ -110,7 +110,7 @@ def login_required(f):
     return decorated_function
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("maximum 5 attempts per minute")  # Limit to 5 login attempts per minute per IP address
+@limiter.limit("5 per minute")  # Limit to 5 login attempts per minute per IP address
 def login():
     config = load_config()
     if request.method == 'POST':
