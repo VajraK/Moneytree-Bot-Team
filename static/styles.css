@@ -292,12 +292,12 @@ input[type="submit"]:hover {
 }
 
 /* Status column color coding */
-.status-success {
+.status-buy {
     color: #28a745; /* Green for success */
     font-weight: bold;
 }
 
-.status-fail {
+.status-no-buy {
     color: #dc3545; /* Red for fail */
     font-weight: bold;
 }

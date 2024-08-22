@@ -247,7 +247,7 @@ async def transaction():
                     # Statistics
                     log_transaction({
                             "post_hash": data.get("tx_hash"),
-                            "status": "FAIL",
+                            "status": "NO-BUY",
                             "fail_reason": "Market cap not within the specified range.",
                             "profit_loss": ""
                         })

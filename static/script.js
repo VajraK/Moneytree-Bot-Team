@@ -208,7 +208,7 @@ function updateTransactionTable(transactions) {
     transactions.forEach(transaction => {
         const row = document.createElement('tr');
 
-        const statusClass = transaction.status === 'SUCCESS' ? 'status-success' : 'status-fail';
+        const statusClass = transaction.status === 'SUCCESS' ? 'status-buy' : 'status-no-buy';
         const profitLossClass = transaction.profit_loss > 0 ? 'profit' : 'loss';
 
         row.innerHTML = `

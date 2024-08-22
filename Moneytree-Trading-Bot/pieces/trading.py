@@ -196,7 +196,7 @@ def buy_token(token_address, amount_eth, trans_hash):
             # Log failure for scam detected
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "FAIL",
+                "status": "NO-BUY",
                 "fail_reason": scam_reason,
                 "profit_loss": ""
             })
@@ -216,7 +216,7 @@ def buy_token(token_address, amount_eth, trans_hash):
             logging.warning(f"Insufficient balance for transaction. Required: {web3.from_wei(required_balance, 'ether')} ETH")
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "FAIL",
+                "status": "NO-BUY",
                 "fail_reason": "Insufficient funds in wallet.",
                 "profit_loss": ""
             })
@@ -375,7 +375,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 logging.error("Token approval failed or took too long.")
                 log_transaction({
                     "post_hash": trans_hash,
-                    "status": "FAIL",
+                    "status": "NO-BUY",
                     "fail_reason": "Token sell approval failed.",
                     "profit_loss": ""
                 })
@@ -480,7 +480,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                         logging.error("Max retries for fallback transaction reached. Skipping the sell transaction.")
                         log_transaction({
                             "post_hash": trans_hash,
-                            "status": "FAIL",
+                            "status": "NO-BUY",
                             "fail_reason": "Selling token failed.2",
                             "profit_loss": ""
                         })
@@ -491,7 +491,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                     logging.error("Max retries reached. Skipping the sell transaction.")
                     log_transaction({
                         "post_hash": trans_hash,
-                        "status": "FAIL",
+                        "status": "NO-BUY",
                         "fail_reason": "Selling token failed.",
                         "profit_loss": ""
                     })
@@ -505,7 +505,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
             logging.error("Failed to detect balance change after sell.")
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "FAIL",
+                "status": "NO-BUY",
                 "fail_reason": "Could not detect change in ETH balance after sell.",
                 "profit_loss": ""
             })

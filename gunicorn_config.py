@@ -4,7 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 # Define the bind address and number of workers
 bind = "0.0.0.0:8000"
-workers = 2
+workers = 4
 
 # Log directories and files
 log_dir = "logs/gunicorn"

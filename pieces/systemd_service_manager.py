@@ -2,6 +2,7 @@ import subprocess
 import logging
 import os
 import time
+from collections import deque
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -46,40 +47,38 @@ def get_service_status(service_name):
 
 def stream_logs(service_name):
     # Determine the log file path based on the service name
-    if service_name == 'mtb':
+    if service_name == "mtb":
         log_file_path = os.path.join(parent_directory, 'logs', 'mtb', 'mtb.log')
-    elif service_name == 'mtdb':
+    elif service_name == "mtdb":
         log_file_path = os.path.join(parent_directory, 'logs', 'mtdb', 'mtdb.log')
     else:
-        logging.error(f"Invalid service name: {service_name}")
-        return "Invalid service name."
+        log_file_path = os.path.join(parent_directory, 'logs', f'{service_name}.log')  # Fallback for other logs
 
     if not os.path.exists(log_file_path):
         logging.error(f"Log file for {service_name} does not exist at {log_file_path}.")
         return "Log file does not exist."
 
     def generate():
-        logging.info(f"Starting to stream logs for {service_name} from {log_file_path}")
         try:
-            with open(log_file_path) as f:
-                # Read and send the entire content of the log file from the beginning
-                for line in f:
-                    logging.info(f"Sending log line: {line.strip()}")  # Debug logging
-                    yield f"data: {line}\n\n"
-                
-                # Now, seek the end of the file to continue streaming new logs
-                f.seek(0, os.SEEK_END)
+            # First, send the last 25 lines (or fewer if the log file is small)
+            with open(log_file_path, "r") as f:
+                last_lines = deque(f, maxlen=25)  # Read the last 25 lines
+                for line in last_lines:
+                    yield f"data: {line.strip()}\n\n"
+
+            # Now, seek to the end of the file and start streaming new logs
+            with open(log_file_path, "r") as f:
+                f.seek(0, os.SEEK_END)  # Go to the end of the file
                 while True:
                     line = f.readline()
                     if line:
-                        logging.info(f"Sending new log line: {line.strip()}")  # Debug logging
-                        yield f"data: {line}\n\n"
+                        yield f"data: {line.strip()}\n\n"
                     else:
-                        time.sleep(1)  # Sleep briefly to avoid busy-waiting
+                        time.sleep(0.5)  # Sleep briefly to avoid busy-waiting
         except GeneratorExit:
             logging.info(f"Client disconnected from {service_name} logs stream.")
         except Exception as e:
             logging.error(f"Error in {service_name} logs streaming: {e}")
             yield f"data: Error in logs streaming: {e}\n\n"
-    
+
     return generate()
