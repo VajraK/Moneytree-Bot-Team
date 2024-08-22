@@ -6,7 +6,10 @@ puppeteer.use(StealthPlugin());
     const tokenHash = process.argv[2]; // Pass the token hash as a command-line argument
     const url = `https://www.dexanalyzer.io/token/${tokenHash}`;
 
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: true,  // Explicitly set headless mode
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
 
