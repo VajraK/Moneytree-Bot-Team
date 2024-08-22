@@ -5,6 +5,7 @@ from datetime import timedelta
 from functools import wraps
 from dotenv import load_dotenv
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status, stream_logs
 import bcrypt
 from flask_limiter import Limiter
@@ -12,8 +13,31 @@ from flask_limiter.util import get_remote_address
 from redis import Redis
 from flask_session import Session 
 
-# Setup logging
-logging.basicConfig(filename='logs/app.log', level=logging.DEBUG)
+# Define the log directory and file
+log_dir = "logs/app"
+log_file = os.path.join(log_dir, "app.log")
+
+# Ensure the log directory exists
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# Setup the logger
+logger = logging.getLogger()
+
+# Remove any existing handlers if the app restarts
+if logger.hasHandlers():
+    logger.handlers.clear()
+
+# Create a rotating log handler with daily rotation and keeping 30 days of logs
+handler = TimedRotatingFileHandler(log_file, when="midnight", interval=1, backupCount=30)
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Add handler to the logger
+logger.addHandler(handler)
+
+# Optionally set the basic logging configuration for debugging to stdout
+logging.basicConfig(level=logging.DEBUG)
 
 # Importing helper functions from pieces/config.py
 from pieces.config import (

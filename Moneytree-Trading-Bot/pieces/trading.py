@@ -202,7 +202,7 @@ def buy_token(token_address, amount_eth):
         required_balance = web3.to_wei(0.025 + amount_eth, 'ether')
         if initial_eth_balance < required_balance:
             logging.warning(f"Insufficient balance for transaction. Required: {web3.from_wei(required_balance, 'ether')} ETH")
-            return None, None, initial_eth_balance
+            return None, None, initial_eth_balance, None
 
         # Check initial token balance
         initial_token_balance = check_token_balance(token_address)

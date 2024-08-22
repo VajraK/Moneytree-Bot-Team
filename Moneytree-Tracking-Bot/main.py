@@ -15,7 +15,7 @@ from pieces.market_cap_calculator import calculate_market_cap, format_market_cap
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # Define log directory and ensure it exists
-log_directory = os.path.join(parent_directory, 'logs')
+log_directory = os.path.join(parent_directory, 'logs/mtb')
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
 
@@ -279,6 +279,8 @@ def handle_event(tx):
             'from_name': from_name,
             'tx_hash': tx_hash,
             'action_text': action_text,
+            'token_link': token_link,
+            'token_text': token_text
         }
         if ALLOW_MTDB_INTERACTION:
             threading.Thread(target=notify_trading_bot, args=(transaction_details,)).start()

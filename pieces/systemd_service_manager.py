@@ -46,7 +46,13 @@ def get_service_status(service_name):
 
 def stream_logs(service_name):
     # Determine the log file path based on the service name
-    log_file_path = os.path.join(parent_directory, 'logs', f'{service_name}.log')
+    if service_name == 'mtb':
+        log_file_path = os.path.join(parent_directory, 'logs', 'mtb', 'mtb.log')
+    elif service_name == 'mtdb':
+        log_file_path = os.path.join(parent_directory, 'logs', 'mtdb', 'mtdb.log')
+    else:
+        logging.error(f"Invalid service name: {service_name}")
+        return "Invalid service name."
 
     if not os.path.exists(log_file_path):
         logging.error(f"Log file for {service_name} does not exist at {log_file_path}.")
@@ -77,4 +83,3 @@ def stream_logs(service_name):
             yield f"data: Error in logs streaming: {e}\n\n"
     
     return generate()
-

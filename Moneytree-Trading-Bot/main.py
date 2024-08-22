@@ -22,7 +22,7 @@ app = Flask(__name__)
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # Define log directory and ensure it exists
-log_directory = os.path.join(parent_directory, 'logs')
+log_directory = os.path.join(parent_directory, 'logs/mtdb')
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
 
@@ -260,13 +260,23 @@ async def transaction():
 
                 # If trading is enabled, execute the buy transaction
                 if ENABLE_TRADING:
-                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH)  # Capture token amount and transaction hash
-                    logging.info(f"Buy transaction completed with hash: {buy_tx_hash}, token amount: {token_amount}, initial eth balance: {initial_eth_balance}, initial price: {initial_price}.")
-
-                    # If buy_tx_hash is None, skip the rest of the process
+                    # Capture token amount, transaction hash, initial ETH balance, and initial price from buy_token function
+                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH)
+                    
+                    # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
-                        logging.info(f"Skipping further actions since the buy was skipped.")
-                        return jsonify({'status': 'success', 'reason': 'Buy was skipped'}), 200
+                        # Log the reason for skipping further actions
+                        if initial_eth_balance is not None and initial_eth_balance < web3.to_wei(AMOUNT_OF_ETH, 'ether'):
+                            logging.warning(f"Insufficient ETH balance for the transaction. Current balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH. Skipping the buy.")
+                        else:
+                            logging.warning(f"Buy transaction was skipped or failed for another reason.")
+                        
+                        # Return a JSON response indicating the buy was skipped
+                        return jsonify({'status': 'success', 'reason': 'Buy was skipped due to insufficient balance or other error'}), 200
+                    
+                    # If the buy was successful, log the details
+                    logging.info(f"Buy transaction completed successfully. Transaction hash: {buy_tx_hash}, token amount: {token_amount}, "
+                                f"initial ETH balance: {initial_eth_balance}, initial price: {initial_price}.")
 
                     messageB += f'*Buy Transaction Hash:*\n[{buy_tx_hash}](https://etherscan.io/tx/{buy_tx_hash})\n\n'  # Add the buy transaction hash
 
