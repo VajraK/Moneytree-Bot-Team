@@ -6,6 +6,7 @@ import yaml
 from datetime import datetime, timedelta, timezone
 import time
 from pieces.dexanalyzer_scraper import scrape_dexanalyzer
+from pieces.statistics import log_transaction
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -70,15 +71,19 @@ WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756
 
 def retry_scam_check(token_address, retries=3, delay_seconds=10):
     for attempt in range(retries):
-        scam_detected = scrape_dexanalyzer(token_address)
+        # Get both the scam detection status and the scam reason from scrape_dexanalyzer
+        scam_detected, scam_reason = scrape_dexanalyzer(token_address)
+        
         if scam_detected:
-            logging.warning(f"SCAM detected for token {token_address}. Retrying ({attempt + 1}/{retries}) in {delay_seconds} seconds.")
+            logging.warning(f"SCAM detected for token {token_address}. Reason: {scam_reason}. Retrying ({attempt + 1}/{retries}) in {delay_seconds} seconds.")
             time.sleep(delay_seconds)
         else:
             logging.info(f"No scam detected for token {token_address} on attempt {attempt + 1}. Proceeding with the buy.")
-            return False  # No scam detected, proceed with buy
-    logging.warning(f"SCAM detected for token {token_address} after {retries} retries. Skipping the buy.")
-    return True  # Scam detected after all retries
+            return False, ""  # No scam detected, return False and no reason
+    
+    # If scam detected after all retries, return True and the final reason
+    logging.warning(f"SCAM detected for token {token_address} after {retries} retries. Skipping the buy. Final reason: {scam_reason}")
+    return True, scam_reason  # Scam detected after all retries
 
 def calculate_token_amount(eth_amount, token_price):
     logging.debug(f"Calculating token amount: ETH amount={eth_amount}, Token price={token_price}")
@@ -177,7 +182,7 @@ def send_transaction(signed_txn):
     tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     return tx_hash
 
-def buy_token(token_address, amount_eth):
+def buy_token(token_address, amount_eth, trans_hash):
     try:
         logging.info(f"Starting buy process for token: {token_address} with {amount_eth} ETH")
 
@@ -186,8 +191,15 @@ def buy_token(token_address, amount_eth):
         logging.debug(f"Checksummed token address: {token_address}")
 
         # Run DexAnalyzer Scraper with retry logic
-        scam_detected = retry_scam_check(token_address)
+        scam_detected, scam_reason = retry_scam_check(token_address)
         if scam_detected:
+            # Log failure for scam detected
+            log_transaction({
+                "post_hash": trans_hash,
+                "status": "FAIL",
+                "fail_reason": scam_reason,
+                "profit_loss": ""
+            })
             return None, None, None, None
 
         # Check initial ETH balance before buy
@@ -202,6 +214,12 @@ def buy_token(token_address, amount_eth):
         required_balance = web3.to_wei(0.025 + amount_eth, 'ether')
         if initial_eth_balance < required_balance:
             logging.warning(f"Insufficient balance for transaction. Required: {web3.from_wei(required_balance, 'ether')} ETH")
+            log_transaction({
+                "post_hash": trans_hash,
+                "status": "FAIL",
+                "fail_reason": "Insufficient funds in wallet.",
+                "profit_loss": ""
+            })
             return None, None, initial_eth_balance, None
 
         # Check initial token balance
@@ -286,7 +304,11 @@ def buy_token(token_address, amount_eth):
         logging.error(f"Failed to execute swap: {e}")
         return None, None, None, None
 
-def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=False):
+def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use_moonbag=False):
+    max_retries = 3  # Maximum number of retries
+    gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
+    retry_count = 0  # Track the number of retries
+
     try:
         logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
 
@@ -351,10 +373,16 @@ def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=Fal
             # Wait for the approval to be confirmed and check allowance again
             if not wait_for_approval(token_contract, token_address, amount_in_smallest_unit):
                 logging.error("Token approval failed or took too long.")
+                log_transaction({
+                    "post_hash": trans_hash,
+                    "status": "FAIL",
+                    "fail_reason": "Token sell approval failed.",
+                    "profit_loss": ""
+                })
                 return None, None
 
-        # **Add a x-second delay before proceeding to sell**
-        logging.info("Waiting x seconds after approval...")
+        # **Add a delay before proceeding to sell**
+        logging.info("Waiting 5 seconds after approval...")
         time.sleep(5)
 
         # Check initial ETH balance before the sell
@@ -362,61 +390,31 @@ def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=Fal
         if pre_sell_eth_balance is None:
             raise Exception("Failed to check initial ETH balance before sell.")
 
-        # Determine transaction parameters
+        # Define the transaction parameters
         deadline = int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())
-        amount_out_min = 0  # You can set a more realistic amount or use a slippage tolerance mechanism
+        amount_out_min = 0  # Set slippage tolerance here if needed
 
-        # Fetch current gas price for the sell transaction
-        base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
-        priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
+        while retry_count < max_retries:
+            try:
+                # Fetch current gas prices for the sell transaction
+                base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
+                priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
 
-        # Apply the total fee multiplier to the final fee (base + priority fee)
-        total_fee = int((base_fee + priority_fee) * TOTAL_FEE_MULTIPLIER)
+                # Apply retry count to adjust gas price if needed
+                total_fee = int((base_fee + priority_fee) * (TOTAL_FEE_MULTIPLIER * (gas_multiplier_increment ** retry_count)))
 
-        # Try the standard swapExactTokensForETH method first
-        try:
-            # Create sell transaction
-            txn = uniswap_v2_router.functions.swapExactTokensForETH(
-                amount_in_smallest_unit,
-                amount_out_min,
-                [token_address, WETH_ADDRESS],
-                Web3.to_checksum_address(WALLET_ADDRESS),
-                deadline
-            ).build_transaction({
-                'from': WALLET_ADDRESS,
-                'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
-            })
-            logging.info("Sell transaction built successfully.")
-
-            # Estimate gas limit
-            gas_limit = web3.eth.estimate_gas(txn)
-            txn['gas'] = gas_limit
-            logging.info(f"Estimated gas limit: {gas_limit}")
-
-            # Set EIP-1559 fields
-            txn['maxFeePerGas'] = total_fee
-            txn['maxPriorityFeePerGas'] = priority_fee
-
-            # Sign and send the transaction
-            signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
-            tx_hash = send_transaction(signed_txn)
-            logging.info(f"Sell transaction sent with hash: {tx_hash.hex()}")
-
-        except Exception as e:
-            if 'UniswapV2: K' in str(e):
-                logging.warning("UniswapV2: K error occurred, retrying with swapExactTokensForETHSupportingFeeOnTransferTokens...")
-
-                # Fallback to swapExactTokensForETHSupportingFeeOnTransferTokens
-                txn = uniswap_v2_router.functions.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                # Create sell transaction
+                txn = uniswap_v2_router.functions.swapExactTokensForETH(
                     amount_in_smallest_unit,
                     amount_out_min,
                     [token_address, WETH_ADDRESS],
-                    WALLET_ADDRESS,
+                    Web3.to_checksum_address(WALLET_ADDRESS),
                     deadline
                 ).build_transaction({
                     'from': WALLET_ADDRESS,
                     'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
                 })
+                logging.info("Sell transaction built successfully.")
 
                 # Estimate gas limit
                 gas_limit = web3.eth.estimate_gas(txn)
@@ -430,7 +428,74 @@ def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=Fal
                 # Sign and send the transaction
                 signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
                 tx_hash = send_transaction(signed_txn)
-                logging.info(f"Sell transaction (with fee-on-transfer support) sent with hash: {tx_hash.hex()}")
+                logging.info(f"Sell transaction sent with hash: {tx_hash.hex()}")
+                break  # Exit retry loop on success
+
+            except Exception as e:
+                retry_count += 1
+                logging.error(f"Sell transaction failed on attempt {retry_count}. Error: {e}")
+
+                # If fallback is necessary due to 'UniswapV2: K' error
+                if 'UniswapV2: K' in str(e):
+                    logging.warning("UniswapV2: K error occurred, retrying with swapExactTokensForETHSupportingFeeOnTransferTokens...")
+
+                    # Retry logic for fallback method
+                    fallback_retries = 0
+                    while fallback_retries < max_retries:
+                        try:
+                            # Adjust gas fees for fallback retry
+                            total_fee = int((base_fee + priority_fee) * (TOTAL_FEE_MULTIPLIER * (gas_multiplier_increment ** fallback_retries)))
+
+                            # Fallback to swapExactTokensForETHSupportingFeeOnTransferTokens
+                            txn = uniswap_v2_router.functions.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                                amount_in_smallest_unit,
+                                amount_out_min,
+                                [token_address, WETH_ADDRESS],
+                                WALLET_ADDRESS,
+                                deadline
+                            ).build_transaction({
+                                'from': WALLET_ADDRESS,
+                                'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
+                            })
+
+                            # Estimate gas limit for fallback transaction
+                            gas_limit = web3.eth.estimate_gas(txn)
+                            txn['gas'] = gas_limit
+                            logging.info(f"Fallback transaction estimated gas limit: {gas_limit}")
+
+                            # Set EIP-1559 fields for fallback transaction
+                            txn['maxFeePerGas'] = total_fee
+                            txn['maxPriorityFeePerGas'] = priority_fee
+
+                            # Sign and send the fallback transaction
+                            signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
+                            tx_hash = send_transaction(signed_txn)
+                            logging.info(f"Fallback sell transaction sent with hash: {tx_hash.hex()}")
+                            break  # Exit fallback retry loop on success
+                        except Exception as fallback_e:
+                            fallback_retries += 1
+                            logging.error(f"Fallback sell transaction failed on attempt {fallback_retries}. Error: {fallback_e}")
+
+                    if fallback_retries >= max_retries:
+                        logging.error("Max retries for fallback transaction reached. Skipping the sell transaction.")
+                        log_transaction({
+                            "post_hash": trans_hash,
+                            "status": "FAIL",
+                            "fail_reason": "Selling token failed.2",
+                            "profit_loss": ""
+                        })
+                        return None, None
+
+                # If max retries reached, log and exit
+                if retry_count >= max_retries:
+                    logging.error("Max retries reached. Skipping the sell transaction.")
+                    log_transaction({
+                        "post_hash": trans_hash,
+                        "status": "FAIL",
+                        "fail_reason": "Selling token failed.",
+                        "profit_loss": ""
+                    })
+                    return None, None
 
         # Wait for the transaction to be mined and check final ETH balance
         logging.info(f"INITIAL: {initial_eth_balance} ETH")
@@ -438,6 +503,12 @@ def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=Fal
         logging.info(f"FINAL: {final_eth_balance} ETH")
         if final_eth_balance is None:
             logging.error("Failed to detect balance change after sell.")
+            log_transaction({
+                "post_hash": trans_hash,
+                "status": "FAIL",
+                "fail_reason": "Could not detect change in ETH balance after sell.",
+                "profit_loss": ""
+            })
             return tx_hash.hex(), None
 
         # Calculate profit/loss by comparing final ETH balance after sell with initial ETH balance before buy
@@ -454,6 +525,14 @@ def sell_token(token_address, token_amount, initial_eth_balance, use_moonbag=Fal
         except Exception as e:
             logging.error(f"Failed to calculate profit/loss: {e}")
             profit_loss = "0"
+
+        # Statistics
+        log_transaction({
+            "post_hash": trans_hash,
+            "status": "SUCCESS",
+            "fail_reason": "",
+            "profit_loss": f"{profit_loss:.18f}"
+        })
 
         return tx_hash.hex(), profit_loss
 

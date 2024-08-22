@@ -17,7 +17,7 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=15):
 
             # Check if the content contains the "Loading" message
             if "<h1>Loading" in content:
-                logging.info(f"Attempt {attempt}: Page is still loading. Retrying...")
+                logging.info(f"[Anti-Scam] Attempt {attempt}: Page is still loading. Retrying...")
                 time.sleep(2)  # Wait for 2 seconds before retrying
                 continue
 
@@ -28,36 +28,38 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=15):
                     file.write(content)
                 logging.info(f"HTML content saved to {file_path}")
 
-            # Perform the scam checks based on the three filters
-            return check_for_scam(content)
+            # Perform the scam checks based on the three filters and return the result
+            scam_result, reason = check_for_scam(content)
+            if scam_result:
+                logging.warning(f"! {reason}")
+            return scam_result, reason
 
         except subprocess.CalledProcessError as e:
             logging.error(f"An error occurred: {e}")
-            return False  # Assume no scam detected on error
+            return False, "Script error"  # Return error for subprocess failure
     
     logging.error("Maximum attempts reached. The page might still be loading.")
-    return False  # Return False if loading persists after max attempts
+    return False, "Page loading timeout"  # Return timeout error if loading persists after max attempts
 
 def check_for_scam(content):
     # 1. MUST NOT CONTAIN 'HIGH</b></td><td>MOST LIKELY SCAM'
     scam_expression = 'HIGH</b></td><td>MOST LIKELY SCAM'
     if scam_expression in content:
-        logging.warning("Scam detected: Contains 'HIGH</b></td><td>MOST LIKELY SCAM'")
-        return True  # Scam detected
+        reason = "Scam detected: HIGH Priority'"
+        return True, reason  # Scam detected
     
     # 2. MUST CONTAIN '***RENOUNCED***'
     renounced_expression = '***RENOUNCED***'
     if renounced_expression not in content:
-        logging.warning("Scam detected: Does not contain '***RENOUNCED***'")
-        return True  # Scam detected
+        reason = "Scam detected: Not Renounced"
+        return True, reason  # Scam detected
     
     # 3. MUST CONTAIN at least one of these: 'Liquidity burned', 'locked for'
     liquidity_burned = 'Liquidity burned'
     locked_for = 'locked for'
     if liquidity_burned not in content and locked_for not in content:
-        logging.warning("Scam detected: Does not contain 'Liquidity burned' or 'locked for'")
-        return True  # Scam detected
+        reason = "Scam detected: Liquidity Not Burned Nor Locked"
+        return True, reason  # Scam detected
 
     # If none of the scam conditions are met, return False
-    logging.info("No scam detected.")
-    return False  # No scam detected
+    return False, ""  # No scam detected

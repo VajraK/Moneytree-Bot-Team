@@ -15,6 +15,7 @@ from pieces.telegram_utils import send_telegram_message
 from pieces.market_cap import calculate_market_cap
 from pieces.price_change_checker import check_no_change_threshold
 from pieces.trading import buy_token, sell_token
+from pieces.statistics import log_transaction
 
 app = Flask(__name__)
 
@@ -38,6 +39,8 @@ file_handler = TimedRotatingFileHandler(log_path, when='midnight', interval=1, b
 file_handler.suffix = "%Y%m%d"  # Suffix to add the date to the archived logs (e.g., 'mtdb-20231201.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
+
+logger.info("*** Started! Moneytree Trading Bot (MTdB) is now running.")
 
 # Construct the config file path in the parent directory
 config_file_path = os.path.join(parent_directory, 'config.yaml')
@@ -172,7 +175,7 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     profit_or_loss = None
     try:
         if ENABLE_TRADING:
-            sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, initial_eth_balance, use_moonbag)  # Pass initial_eth_balance here
+            sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, initial_eth_balance, tx_hash, use_moonbag)  # Pass initial_eth_balance here
             logging.info(f"Monitoring {monitoring_id} — Sell transaction sent with hash: {sell_tx_hash}")
     except Exception as e:
         logging.error(f"Error during sell: {e}")
@@ -216,6 +219,22 @@ async def transaction():
         if token_address:
             logging.info(f"Extracted token address: {token_address}")
 
+            name, symbol, decimals = get_token_details(web3, token_address, uniswap_v2_erc20_abi)
+            logging.info(f"Token name: {name}")
+            logging.info(f"Token symbol: {symbol}")
+
+            # Statistics
+            log_transaction({
+                "time": datetime.now(timezone.utc).strftime("%A, %B %d, %Y %I:%M %p %Z"),  # Current UTC time
+                "post_hash": data.get("tx_hash"),  # Using 'tx_hash' for post hash
+                "wallet_name": data.get("from_name"),  # Using 'from_name' for wallet name
+                "token_symbol": symbol,  # Token symbol
+                "amount_of_eth": AMOUNT_OF_ETH,  # Amount of ETH
+                "status": "",  # Initial status when transaction is received
+                "fail_reason": "",  # No fail reason yet
+                "profit_loss": ""  # Profit/loss not calculated yet
+            })
+
             if ENABLE_MARKET_CAP_FILTER:
                 # Check market cap
                 market_cap_usd = calculate_market_cap(token_address)
@@ -225,11 +244,17 @@ async def transaction():
                 
                 if market_cap_usd < MIN_MARKET_CAP or market_cap_usd > MAX_MARKET_CAP:
                     logging.info(f"Market cap {market_cap_usd} USD not within the specified range. Skipping the buy.")
+                    # Statistics
+                    log_transaction({
+                            "post_hash": data.get("tx_hash"),
+                            "status": "FAIL",
+                            "fail_reason": "Market cap not within the specified range.",
+                            "profit_loss": ""
+                        })
                     return jsonify({'status': 'failed', 'reason': f'Market cap {market_cap_usd} USD not within the specified range'}), 200
 
-            name, symbol, decimals = get_token_details(web3, token_address, uniswap_v2_erc20_abi)
-            logging.info(f"Token name: {name}")
-            logging.info(f"Token symbol: {symbol}")
+            
+
             initial_price, pair_address = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, decimals, uniswap_v2_pair_abi)
             if initial_price is None:
                 initial_price, pair_address = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, decimals, uniswap_v3_pool_abi)
@@ -261,7 +286,7 @@ async def transaction():
                 # If trading is enabled, execute the buy transaction
                 if ENABLE_TRADING:
                     # Capture token amount, transaction hash, initial ETH balance, and initial price from buy_token function
-                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH)
+                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash)
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:

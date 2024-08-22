@@ -77,23 +77,41 @@
             </div>
         </div>
 
-        <!-- Statistics -->
         <div class="tab-content" id="Statistics" style="display: none;">
             <div class="control-panel">
                 <div class="panel-header">
-                    <img src="{{ url_for('static', filename='MTdB.png') }}" alt="MTdB">
-                    <img src="{{ url_for('static', filename='MTB.png') }}" alt="MTB">
+                    <img src="{{ url_for('static', filename='chart.png') }}" alt="Chart">
+                    <h2>Statistics</h2>
+                    <div class="spinner-container">
+                        <div class="spinner" id="statisticsSpinner" style="display: none;"></div>
+                    </div>
                 </div>
-                <div class="centered-text">
-                    <h2>Coming Soon!!!</h2>
+                <div class="centered-table">
+                    <table id="transactionTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Post Hash</th>
+                                <th>Wallet Name</th>
+                                <th>Token Symbol</th>
+                                <th>Amount of ETH</th>
+                                <th>Status</th>
+                                <th>Fail Reason</th>
+                                <th>Profit/Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
+        
 
         <!-- Settings Panel -->
         <div class="tab-content" id="configPanel" style="display: none;">
             <div class="container">
                 <div class="panel-header">
+                    <img src="{{ url_for('static', filename='wrench.png') }}" alt="Wrench">
                     <h2>Settings</h2>
                 </div>
                 <form action="{{ url_for('update') }}" method="post">

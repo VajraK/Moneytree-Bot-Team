@@ -186,3 +186,69 @@ document.addEventListener('mousemove', (event) => {
         image.style.transform = `rotateY(${mouseX}deg) rotateX(${-mouseY}deg)`;
     });
 });
+
+// Function to show or hide the spinner using display property
+function toggleSpinner(visible) {
+    const spinner = document.getElementById('statisticsSpinner');
+    if (spinner) {
+        spinner.style.display = visible ? 'block' : 'none';  // Toggle visibility
+    }
+}
+
+// Function to format post hash
+function formatPostHash(hash) {
+    return hash.slice(0, 7) + "..." + hash.slice(-7); // Shorten hash display
+}
+
+// Function to update the transaction table
+function updateTransactionTable(transactions) {
+    const tableBody = document.querySelector('#transactionTable tbody');
+    tableBody.innerHTML = '';  // Clear the table first
+
+    transactions.forEach(transaction => {
+        const row = document.createElement('tr');
+
+        const statusClass = transaction.status === 'SUCCESS' ? 'status-success' : 'status-fail';
+        const profitLossClass = transaction.profit_loss > 0 ? 'profit' : 'loss';
+
+        row.innerHTML = `
+            <td>${new Date(transaction.time).toLocaleString()}</td>
+            <td class="short-hash">${formatPostHash(transaction.post_hash)}</td>
+            <td>${transaction.wallet_name}</td>
+            <td>${transaction.token_symbol}</td>
+            <td>${transaction.amount_of_eth}</td>
+            <td class="${statusClass}">${transaction.status}</td>
+            <td>${transaction.fail_reason || ''}</td>
+            <td class="${profitLossClass}">${transaction.profit_loss || ''}</td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to fetch the transaction logs and display the spinner while loading
+function fetchTransactionLogs() {
+    toggleSpinner(true); // Show spinner before fetching data
+    fetch('/get_transactions')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                updateTransactionTable(data);
+            }
+        })
+        .finally(() => {
+            toggleSpinner(false); // Hide spinner after data is loaded
+        })
+        .catch(error => {
+            console.error('Error fetching transactions:', error);
+            toggleSpinner(false); // Hide spinner even on error
+        });
+}
+
+// Poll the server every 5 seconds for new transaction logs
+setInterval(fetchTransactionLogs, 5000);
+
+// Fetch the transaction logs when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    fetchTransactionLogs();
+});

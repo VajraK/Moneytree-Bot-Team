@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, jsonify
 import yaml
+import json
 import os
 from datetime import timedelta
 from functools import wraps
@@ -144,6 +145,7 @@ def index():
 
 @app.route('/update', methods=['POST'])
 @login_required
+@limiter.exempt
 def update():
     config = load_config()
     
@@ -159,6 +161,18 @@ def update():
     save_config(config)
     
     return redirect(url_for('index'))
+
+@app.route('/get_transactions')
+@login_required
+@limiter.exempt
+def get_transactions():
+    # Read the transaction_logs.json file
+    try:
+        with open('logs/statistics/transaction_logs.json') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': 'Unable to read transaction logs.'}), 500
 
 @app.route('/start_mtb', methods=['POST'])
 @login_required

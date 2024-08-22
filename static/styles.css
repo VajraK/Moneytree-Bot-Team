@@ -256,10 +256,66 @@ input[type="submit"]:hover {
         transform: rotate(360deg);
     }
 }
-.centered-text {
+/* Transaction Table Styling */
+#transactionTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#transactionTable th, #transactionTable td {
+    border: 1px solid #555; /* Darker border */
+    padding: 10px;
+    text-align: center;
+}
+
+#transactionTable th {
+    background-color: #333; /* Darker header background */
+    color: #ffffff; /* White header text */
+    font-weight: bold;
+}
+
+/* Zebra stripe effect */
+#transactionTable tr:nth-child(even) {
+    background-color: #2e2e2e; /* Slightly lighter background for even rows */
+}
+
+#transactionTable tr:nth-child(odd) {
+    background-color: #242424; /* Darker background for odd rows */
+}
+
+#transactionTable tr:hover {
+    background-color: #3b3b3b; /* Hover background for better interaction */
+}
+
+/* Status column color coding */
+.status-success {
+    color: #28a745; /* Green for success */
+    font-weight: bold;
+}
+
+.status-fail {
+    color: #dc3545; /* Red for fail */
+    font-weight: bold;
+}
+
+/* Post hash shortened view */
+.short-hash {
+    color: #FFD700; /* Gold color for post hash */
+    font-weight: bold;
+}
+
+/* Table Profit/Loss with different colors */
+.profit {
+    color: #28a745; /* Green for profit */
+}
+
+.loss {
+    color: #dc3545; /* Red for loss */
+}
+
+/* Centering the table in the Statistics panel */
+.centered-table {
     display: flex;
-    justify-content: center; /* Horizontally center */
-    align-items: center;     /* Vertically center */
-    height: 100vh;           /* Full viewport height (optional, adjust as needed) */
-    text-align: center;      /* Center the text */
+    justify-content: center;
 }

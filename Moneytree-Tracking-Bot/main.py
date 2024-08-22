@@ -32,6 +32,9 @@ file_handler.suffix = "%Y%m%d"  # Suffix to add the date to the archived logs (e
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
+# Add a log message to indicate that the bot has started
+logger.info("*** Started! Moneytree Tracking Bot (MTB) is now running.")
+
 # Construct the config file path in the parent directory
 config_file_path = os.path.join(parent_directory, 'config.yaml')
 
