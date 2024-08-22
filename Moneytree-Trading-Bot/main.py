@@ -225,7 +225,7 @@ async def transaction():
 
             # Statistics
             log_transaction({
-                "time": datetime.now(timezone.utc).strftime("%A, %B %d, %Y %I:%M %p %Z"),  # Current UTC time
+                "time": datetime.now(timezone.utc).isoformat(),  # Current UTC time
                 "post_hash": data.get("tx_hash"),  # Using 'tx_hash' for post hash
                 "wallet_name": data.get("from_name"),  # Using 'from_name' for wallet name
                 "token_symbol": symbol,  # Token symbol
