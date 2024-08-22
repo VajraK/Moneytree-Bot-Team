@@ -256,6 +256,9 @@ input[type="submit"]:hover {
         transform: rotate(360deg);
     }
 }
+.spinner-container {
+    margin-left: auto; /* Pushes the spinner to the right */
+}
 /* Transaction Table Styling */
 #transactionTable {
     width: 100%;
