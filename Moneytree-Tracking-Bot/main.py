@@ -9,6 +9,7 @@ from web3 import Web3
 from bs4 import BeautifulSoup
 from retry import retry
 import threading
+from web3.exceptions import BlockNotFound 
 from pieces.market_cap_calculator import calculate_market_cap, format_market_cap
 
 # Get the absolute path of the parent directory
@@ -332,16 +333,30 @@ def log_loop(poll_interval):
     """
     latest_block = get_block_number()
     logging.info(f"Starting to monitor from block {latest_block}")
+    
     while True:
-        logging.info("Checking for new events...")
-        current_block = get_block_number()
-        if current_block > latest_block:
-            for block_num in range(latest_block + 1, current_block + 1):
-                block = web3.eth.get_block(block_num, full_transactions=True)
-                for tx in block.transactions:
-                    handle_event(tx)
-            latest_block = current_block
-        time.sleep(poll_interval)
+        try:
+            logging.info("Checking for new events...")
+            current_block = get_block_number()
+            
+            if current_block > latest_block:
+                for block_num in range(latest_block + 1, current_block + 1):
+                    try:
+                        block = web3.eth.get_block(block_num, full_transactions=True)
+                        for tx in block.transactions:
+                            handle_event(tx)
+                    except BlockNotFound as e:  # Handle the BlockNotFound exception
+                        logging.warning(f"Block {block_num} not found: {e}. Retrying after delay...")
+                        time.sleep(2)  # Delay before retrying
+                        continue  # Skip this block and continue with the next one
+                latest_block = current_block
+
+            time.sleep(poll_interval)
+
+        except Exception as e:
+            logging.error(f"Unexpected error in log loop: {e}")
+            time.sleep(poll_interval)
+
 
 def test_transaction(tx_hash):
     """

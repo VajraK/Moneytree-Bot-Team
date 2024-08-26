@@ -3,36 +3,65 @@ import logging
 import os
 import time
 from collections import deque
+from redis import Redis
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+# Initialize Redis connection
+redis_conn = Redis(host='localhost', port=6379)  # Adjust Redis host/port as needed
+
+def log_to_redis(service_name, log_line):
+    # Push logs into Redis lists
+    redis_conn.rpush(f'logs:{service_name}', log_line)
+
+def get_logs_from_redis(service_name, limit=25):
+    # Get the last `limit` number of logs from Redis
+    return redis_conn.lrange(f'logs:{service_name}', -limit, -1)
+
+def add_log(service_name, log_message):
+    log_line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {log_message}"
+    log_to_redis(service_name, log_line)
+    redis_conn.publish(f'logs_channel:{service_name}', log_line)  # Publish log to the Redis pub/sub channel
+
 def start_service(service_name):
     try:
         subprocess.run(['sudo', 'systemctl', 'start', f'{service_name}.service'], check=True)
-        logging.info(f"{service_name} service started successfully.")
-        return True, f"{service_name} service started successfully."
+        message = f"{service_name} service started successfully."
+        logging.info(message)
+        add_log(service_name, message)  # Push log to Redis
+        return True, message
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error starting {service_name} service: {e}")
-        return False, f"Error starting {service_name} service: {e}"
+        message = f"Error starting {service_name} service: {e}"
+        logging.error(message)
+        add_log(service_name, message)  # Push log to Redis
+        return False, message
 
 def stop_service(service_name):
     try:
         subprocess.run(['sudo', 'systemctl', 'stop', f'{service_name}.service'], check=True)
-        logging.info(f"{service_name} service stopped successfully.")
-        return True, f"{service_name} service stopped successfully."
+        message = f"{service_name} service stopped successfully."
+        logging.info(message)
+        add_log(service_name, message)  # Push log to Redis
+        return True, message
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error stopping {service_name} service: {e}")
-        return False, f"Error stopping {service_name} service: {e}"
+        message = f"Error stopping {service_name} service: {e}"
+        logging.error(message)
+        add_log(service_name, message)  # Push log to Redis
+        return False, message
 
 def restart_service(service_name):
     try:
         subprocess.run(['sudo', 'systemctl', 'restart', f'{service_name}.service'], check=True)
-        logging.info(f"{service_name} service restarted successfully.")
-        return True, f"{service_name} service restarted successfully."
+        message = f"{service_name} service restarted successfully."
+        logging.info(message)
+        add_log(service_name, message)  # Push log to Redis
+        return True, message
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error restarting {service_name} service: {e}")
-        return False, f"Error restarting {service_name} service: {e}"
+        message = f"Error restarting {service_name} service: {e}"
+        logging.error(message)
+        add_log(service_name, message)  # Push log to Redis
+        return False, message
 
 def get_service_status(service_name):
     try:
@@ -42,7 +71,9 @@ def get_service_status(service_name):
             return 'running'
         return 'stopped'
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error checking {service_name} service status: {e}")
+        message = f"Error checking {service_name} service status: {e}"
+        logging.error(message)
+        add_log(service_name, message)  # Push log to Redis
         return 'error'
 
 def stream_logs(service_name):

@@ -7,7 +7,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status, stream_logs
+from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status, add_log, stream_logs
 import bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -178,6 +178,7 @@ def get_transactions():
 @login_required
 def start_mtb():
     success, message = start_service('mtb')
+    add_log('mtb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
@@ -186,6 +187,7 @@ def start_mtb():
 @login_required
 def stop_mtb():
     success, message = stop_service('mtb')
+    add_log('mtb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
@@ -193,6 +195,7 @@ def stop_mtb():
 @login_required
 def restart_mtb():
     success, message = restart_service('mtb')
+    add_log('mtb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
@@ -207,6 +210,7 @@ def mtb_status():
 @login_required
 def start_mtdb():
     success, message = start_service('mtdb')
+    add_log('mtdb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
@@ -214,6 +218,7 @@ def start_mtdb():
 @login_required
 def stop_mtdb():
     success, message = stop_service('mtdb')
+    add_log('mtdb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
@@ -221,6 +226,7 @@ def stop_mtdb():
 @login_required
 def restart_mtdb():
     success, message = restart_service('mtdb')
+    add_log('mtdb', message)  # Log to Redis
     flash(message, 'success' if success else 'danger')
     return '', 204
 
