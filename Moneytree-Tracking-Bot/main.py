@@ -347,7 +347,7 @@ def log_loop(poll_interval):
                             handle_event(tx)
                     except BlockNotFound as e:  # Handle the BlockNotFound exception
                         logging.warning(f"Block {block_num} not found: {e}. Retrying after delay...")
-                        time.sleep(2)  # Delay before retrying
+                        time.sleep(1)  # Delay before retrying
                         continue  # Skip this block and continue with the next one
                 latest_block = current_block
 
