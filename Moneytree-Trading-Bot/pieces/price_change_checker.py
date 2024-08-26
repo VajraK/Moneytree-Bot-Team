@@ -26,7 +26,7 @@ NO_CHANGE_TIME_MINUTES = config['NO_CHANGE_TIME_MINUTES']
 def check_no_change_threshold(start_time, price_history, monitoring_id, symbol, token_amount):
     current_time = datetime.now(timezone.utc)
     intervals_passed = (current_time - start_time) // timedelta(minutes=NO_CHANGE_TIME_MINUTES)
-    threshold_percent = NO_CHANGE_THRESHOLD_PERCENT * 100  # Convert to percentage for logging
+    threshold_percent = NO_CHANGE_THRESHOLD_PERCENT  # Use the percentage from the config
 
     if intervals_passed > 0:
         for interval in range(intervals_passed):

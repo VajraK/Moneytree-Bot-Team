@@ -183,6 +183,10 @@ def send_transaction(signed_txn):
     return tx_hash
 
 def buy_token(token_address, amount_eth, trans_hash):
+    max_retries = 3  # Maximum number of retries
+    gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
+    retry_count = 0  # Track the number of retries
+
     try:
         logging.info(f"Starting buy process for token: {token_address} with {amount_eth} ETH")
 
@@ -231,74 +235,90 @@ def buy_token(token_address, amount_eth, trans_hash):
         deadline = int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())
         logging.debug(f"Transaction deadline: {deadline}, Slippage tolerance: {SLIPPAGE_TOLERANCE}")
 
-        # Get token price from Uniswap
-        initial_price = get_token_price(token_address)
-        if initial_price is None:
-            raise Exception("Token price not found on Uniswap V2 or V3.")
+        while retry_count < max_retries:
+            try:
+                # Get token price from Uniswap
+                initial_price = get_token_price(token_address)
+                if initial_price is None:
+                    raise Exception("Token price not found on Uniswap V2 or V3.")
 
-        # Calculate the estimated output amount
-        estimated_output_amount = calculate_token_amount(web3.to_wei(amount_eth, 'ether'), initial_price)
-        logging.info(f"Estimated output amount (without slippage): {estimated_output_amount}")
+                # Calculate the estimated output amount
+                estimated_output_amount = calculate_token_amount(web3.to_wei(amount_eth, 'ether'), initial_price)
+                logging.info(f"Estimated output amount (without slippage): {estimated_output_amount}")
 
-        # Calculate the minimum output amount (after applying slippage tolerance)
-        amount_out_min = int(estimated_output_amount * (1 - SLIPPAGE_TOLERANCE))
-        logging.info(f"Minimum output amount (amount_out_min) after slippage: {amount_out_min}")
+                # Calculate the minimum output amount (after applying slippage tolerance)
+                amount_out_min = int(estimated_output_amount * (1 - SLIPPAGE_TOLERANCE))
+                logging.info(f"Minimum output amount (amount_out_min) after slippage: {amount_out_min}")
 
-        # Create the path for the swap (WETH -> Token)
-        path = [WETH_ADDRESS, token_address]
-        logging.debug(f"Swap path: {path}")
+                # Create the path for the swap (WETH -> Token)
+                path = [WETH_ADDRESS, token_address]
+                logging.debug(f"Swap path: {path}")
 
-        # Create the transaction
-        txn = uniswap_v2_router.functions.swapExactETHForTokens(
-            amount_out_min,
-            path,
-            WALLET_ADDRESS,
-            deadline
-        ).build_transaction({
-            'from': WALLET_ADDRESS,
-            'value': web3.to_wei(amount_eth, 'ether'),
-            'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
-        })
-        logging.info("Transaction built successfully.")
+                # Create the transaction
+                txn = uniswap_v2_router.functions.swapExactETHForTokens(
+                    amount_out_min,
+                    path,
+                    WALLET_ADDRESS,
+                    deadline
+                ).build_transaction({
+                    'from': WALLET_ADDRESS,
+                    'value': web3.to_wei(amount_eth, 'ether'),
+                    'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
+                })
+                logging.info("Transaction built successfully.")
 
-        # Estimate gas limit
-        gas_limit = web3.eth.estimate_gas(txn)
-        txn['gas'] = gas_limit
-        logging.info(f"Estimated gas limit: {gas_limit}")
+                # Estimate gas limit
+                gas_limit = web3.eth.estimate_gas(txn)
+                txn['gas'] = gas_limit
+                logging.info(f"Estimated gas limit: {gas_limit}")
 
-        # Fetch current gas prices
-        base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
-        priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
+                # Fetch current gas prices
+                base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
+                priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
 
-        # Apply the total fee multiplier to the final fee (base + priority fee)
-        total_fee = int((base_fee + priority_fee) * TOTAL_FEE_MULTIPLIER)
+                # Apply retry count to adjust gas price if needed
+                total_fee = int((base_fee + priority_fee) * (TOTAL_FEE_MULTIPLIER * (gas_multiplier_increment ** retry_count)))
 
-        # Set EIP-1559 fields
-        txn['maxFeePerGas'] = total_fee
-        txn['maxPriorityFeePerGas'] = priority_fee  # Priority fee remains after multiplication
+                # Set EIP-1559 fields
+                txn['maxFeePerGas'] = total_fee
+                txn['maxPriorityFeePerGas'] = priority_fee  # Priority fee remains after multiplication
 
-        # Log the final fee values
-        logging.info(f"Total gas fee (after applying multiplier): {web3.from_wei(total_fee, 'gwei')} GWEI")
-        logging.info(f"Priority fee: {web3.from_wei(priority_fee, 'gwei')} GWEI")
+                # Log the final fee values
+                logging.info(f"Total gas fee (after applying multiplier): {web3.from_wei(total_fee, 'gwei')} GWEI")
+                logging.info(f"Priority fee: {web3.from_wei(priority_fee, 'gwei')} GWEI")
 
-        # Sign the transaction
-        signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
+                # Sign the transaction
+                signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
 
-        # Send the transaction
-        tx_hash = send_transaction(signed_txn)
-        logging.info(f"Transaction sent with hash: {tx_hash.hex()}")
+                # Send the transaction
+                tx_hash = send_transaction(signed_txn)
+                logging.info(f"Transaction sent with hash: {tx_hash.hex()}")
 
-        # Wait for the transaction to be mined and check final token balance
-        final_token_balance = wait_for_balance_change(check_token_balance, token_address, expected_increase=True)
-        if final_token_balance is None:
-            logging.error("Failed to detect balance change after buy.")
-            return None, tx_hash.hex(), initial_eth_balance
+                # Wait for the transaction to be mined and check final token balance
+                final_token_balance = wait_for_balance_change(check_token_balance, token_address, expected_increase=True)
+                if final_token_balance is None:
+                    logging.error("Failed to detect balance change after buy.")
+                    return None, tx_hash.hex(), initial_eth_balance
 
-        # Calculate the actual tokens received
-        tokens_received = final_token_balance - initial_token_balance
-        logging.info(f"Tokens received: {tokens_received}")
+                # Calculate the actual tokens received
+                tokens_received = final_token_balance - initial_token_balance
+                logging.info(f"Tokens received: {tokens_received}")
 
-        return tokens_received, tx_hash.hex(), initial_eth_balance, initial_price
+                return tokens_received, tx_hash.hex(), initial_eth_balance, initial_price
+
+            except Exception as e:
+                retry_count += 1
+                logging.error(f"Buy transaction failed on attempt {retry_count}. Error: {e}")
+
+                if retry_count >= max_retries:
+                    logging.error("Max retries reached. Skipping the buy transaction.")
+                    log_transaction({
+                        "post_hash": trans_hash,
+                        "status": "NO-BUY",
+                        "fail_reason": "Buying token failed after retries.",
+                        "profit_loss": ""
+                    })
+                    return None, None, None, None
 
     except Exception as e:
         logging.error(f"Failed to execute swap: {e}")
