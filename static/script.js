@@ -36,10 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeTab = localStorage.getItem('activeTab') || 'homePanel'; // Default to homePanel if no tab is saved
     showTab(activeTab);
 
-    // Automatically start streaming logs on page load
-    streamMTBLogs();
-    streamMTdBLogs();
-
     // Scroll to the bottom of the log containers after a short delay to ensure they're fully rendered
     setTimeout(() => {
         scrollToBottom(logContainerMTB);  // Scroll the MTB log container
@@ -79,33 +75,31 @@ function restartMTdB() {
     fetch('/restart_mtdb', { method: 'POST' });
 }
 
-// Stream logs from the MTB service
-function streamMTBLogs() {
-    const logOutputMTB = document.getElementById('logOutput');
-    const logContainerMTB = document.getElementById('logContainerMTB');
-    const evtSourceMTB = new EventSource('/logs/mtb');
+// EventSource to stream logs from the MTB service
+const evtSourceMTB = new EventSource('/logs/mtb');
+const logOutputMTB = document.getElementById('logOutput');
+const logContainerMTB = document.getElementById('logContainerMTB');
 
-    evtSourceMTB.onmessage = function(event) {
-        const logLine = document.createElement('div');
-        logLine.textContent = event.data;
-        logOutputMTB.appendChild(logLine);
-        scrollToBottom(logContainerMTB);
-    };
-}
+// Handle MTB log messages
+evtSourceMTB.onmessage = function(event) {
+    const logLine = document.createElement('div');
+    logLine.textContent = event.data;
+    logOutputMTB.appendChild(logLine);
+    scrollToBottom(logContainerMTB);
+};
 
-// Stream logs from the MTdB service
-function streamMTdBLogs() {
-    const logOutputMTdB = document.getElementById('logOutputMTdB');
-    const logContainerMTdB = document.getElementById('logContainerMTdB');
-    const evtSourceMTdB = new EventSource('/logs/mtdb');
+// EventSource to stream logs from the MTdB service
+const evtSourceMTdB = new EventSource('/logs/mtdb');
+const logOutputMTdB = document.getElementById('logOutputMTdB');
+const logContainerMTdB = document.getElementById('logContainerMTdB');
 
-    evtSourceMTdB.onmessage = function(event) {
-        const logLine = document.createElement('div');
-        logLine.textContent = event.data;
-        logOutputMTdB.appendChild(logLine);
-        scrollToBottom(logContainerMTdB);
-    };
-}
+// Handle MTdB log messages
+evtSourceMTdB.onmessage = function(event) {
+    const logLine = document.createElement('div');
+    logLine.textContent = event.data;
+    logOutputMTdB.appendChild(logLine);
+    scrollToBottom(logContainerMTdB);
+};
 
 // Function to scroll to the bottom of the log container
 function scrollToBottom(container) {
