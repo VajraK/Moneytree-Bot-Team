@@ -60,17 +60,17 @@ def stream_logs(service_name):
 
     def generate():
         try:
-            # Using 'tail -f' to stream logs in real-time
-            process = subprocess.Popen(['tail', '-f', log_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            logging.info(f"Starting tail process for {log_file_path}")
+            
+            # Using tail -f with the -u (unbuffered) option to ensure real-time streaming
+            process = subprocess.Popen(['tail', '-f', '-n', '0', log_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             while True:
                 line = process.stdout.readline()
                 if line:
                     yield f"data: {line.decode('utf-8').strip()}\n\n"
-                time.sleep(0.1)  # Slight delay to avoid excessive CPU usage
-        except GeneratorExit:
-            logging.info(f"Client disconnected from {service_name} logs stream.")
+                time.sleep(0.1)
         except Exception as e:
-            logging.error(f"Error in {service_name} logs streaming: {e}")
-            yield f"data: Error in logs streaming: {e}\n\n"
+            logging.error(f"Error streaming logs: {e}")
+            yield f"data: Error streaming logs: {e}\n\n"
 
     return generate()
