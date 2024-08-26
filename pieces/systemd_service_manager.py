@@ -60,21 +60,13 @@ def stream_logs(service_name):
 
     def generate():
         try:
-            # First, send the last 25 lines (or fewer if the log file is small)
-            with open(log_file_path, "r") as f:
-                last_lines = deque(f, maxlen=25)  # Read the last 25 lines
-                for line in last_lines:
-                    yield f"data: {line.strip()}\n\n"
-
-            # Now, seek to the end of the file and start streaming new logs
-            with open(log_file_path, "r") as f:
-                f.seek(0, os.SEEK_END)  # Go to the end of the file
-                while True:
-                    line = f.readline()
-                    if line:
-                        yield f"data: {line.strip()}\n\n"
-                    else:
-                        time.sleep(0.5)  # Sleep briefly to avoid busy-waiting
+            # Using 'tail -f' to stream logs in real-time
+            process = subprocess.Popen(['tail', '-f', log_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            while True:
+                line = process.stdout.readline()
+                if line:
+                    yield f"data: {line.decode('utf-8').strip()}\n\n"
+                time.sleep(0.1)  # Slight delay to avoid excessive CPU usage
         except GeneratorExit:
             logging.info(f"Client disconnected from {service_name} logs stream.")
         except Exception as e:
