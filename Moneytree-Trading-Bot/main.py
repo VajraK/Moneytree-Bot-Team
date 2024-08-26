@@ -14,7 +14,8 @@ from pieces.text_utils import insert_zero_width_space
 from pieces.telegram_utils import send_telegram_message
 from pieces.market_cap import calculate_market_cap
 from pieces.price_change_checker import check_no_change_threshold
-from pieces.trading import buy_token, sell_token
+from pieces.trading_buy import buy_token
+from pieces.trading_sell import sell_token
 from pieces.statistics import log_transaction
 
 app = Flask(__name__)

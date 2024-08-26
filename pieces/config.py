@@ -47,6 +47,7 @@ def update_feature_toggles(config, form):
     config['ENABLE_MARKET_CAP_FILTER'] = 'true' if 'ENABLE_MARKET_CAP_FILTER' in form else 'false'
     config['ENABLE_PRICE_CHANGE_CHECKER'] = 'true' if 'ENABLE_PRICE_CHANGE_CHECKER' in form else 'false'
     config['ENABLE_TRADING'] = 'true' if 'ENABLE_TRADING' in form else 'false'
+    config['ENABLE_AUTOMATIC_FEES'] = 'true' if 'ENABLE_AUTOMATIC_FEES' in form else 'false'
     
     # Convert these 'true'/'false' strings back to actual booleans
     for key in config:
