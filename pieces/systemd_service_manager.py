@@ -100,12 +100,19 @@ def stream_logs(service_name):
             # Now, seek to the end of the file and start streaming new logs
             with open(log_file_path, "r") as f:
                 f.seek(0, os.SEEK_END)  # Go to the end of the file
+                last_heartbeat = time.time()
                 while True:
                     line = f.readline()
                     if line:
                         yield f"data: {line.strip()}\n\n"
                     else:
+                        # Send a "heartbeat" comment every 15 seconds to keep the connection alive
+                        current_time = time.time()
+                        if current_time - last_heartbeat > 15:
+                            yield ":\n\n"  # This is a comment (heartbeat) in SSE; it won't be displayed to the client
+                            last_heartbeat = current_time
                         time.sleep(0.5)  # Sleep briefly to avoid busy-waiting
+
         except GeneratorExit:
             logging.info(f"Client disconnected from {service_name} logs stream.")
         except Exception as e:
