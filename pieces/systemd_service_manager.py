@@ -1,6 +1,7 @@
 import subprocess
 import logging
 import os
+import subprocess
 import time
 from collections import deque
 from redis import Redis
@@ -86,35 +87,25 @@ def stream_logs(service_name):
         log_file_path = os.path.join(parent_directory, 'logs', f'{service_name}.log')  # Fallback for other logs
 
     if not os.path.exists(log_file_path):
-        logging.error(f"Log file for {service_name} does not exist at {log_file_path}.")
         return "Log file does not exist."
 
     def generate():
         try:
-            # First, send the last 25 lines (or fewer if the log file is small)
-            with open(log_file_path, "r") as f:
-                last_lines = deque(f, maxlen=25)  # Read the last 25 lines
-                for line in last_lines:
-                    yield f"data: {line.strip()}\n\n"
+            # Use 'tail -f' to stream the log file
+            process = subprocess.Popen(['tail', '-f', log_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            # Now, seek to the end of the file and start streaming new logs
-            with open(log_file_path, "r") as f:
-                f.seek(0, os.SEEK_END)  # Go to the end of the file
-                last_heartbeat = time.time()
-                while True:
-                    line = f.readline()
-                    if line:
-                        yield f"data: {line.strip()}\n\n"
-                    else:
-                        # Send a "heartbeat" comment every 15 seconds to keep the connection alive
-                        current_time = time.time()
-                        if current_time - last_heartbeat > 15:
-                            yield ":\n\n"  # This is a comment (heartbeat) in SSE; it won't be displayed to the client
-                            last_heartbeat = current_time
-                        time.sleep(0.5)  # Sleep briefly to avoid busy-waiting
+            while True:
+                # Read new lines from the tail process
+                line = process.stdout.readline()
+                if line:
+                    yield f"data: {line.decode('utf-8').strip()}\n\n"
+                else:
+                    # Keep yielding if no new line is available
+                    yield ":\n\n"  # Send heartbeat to keep connection alive
 
         except GeneratorExit:
             logging.info(f"Client disconnected from {service_name} logs stream.")
+            process.terminate()  # Terminate the tail process if client disconnects
         except Exception as e:
             logging.error(f"Error in {service_name} logs streaming: {e}")
             yield f"data: Error in logs streaming: {e}\n\n"
