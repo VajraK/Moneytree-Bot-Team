@@ -19,8 +19,7 @@
     <!-- Tab Navigation -->
     <div class="tabs">
         <button class="tab-button active" data-target="homePanel">Home</button>
-        <button class="tab-button" data-target="MTBPanel">MTB</button>
-        <button class="tab-button" data-target="MTdBPanel">MTdB</button>
+        <button class="tab-button" data-target="ControlPanel">Control Panel</button>
         <button class="tab-button" data-target="Statistics">Statistics</button>
         <button class="tab-button" data-target="configPanel">Settings</button>
     </div>
@@ -35,48 +34,44 @@
             </div>
         </div>
 
-        <!-- MTB Logs Panel -->
-        <div class="tab-content" id="MTBPanel" style="display: none;">
-            <div class="control-panel">
-                <div class="panel-header">
-                    <img src="{{ url_for('static', filename='MTB.png') }}" alt="MTB">
-                    <h2>MTB</h2>
-                    <span id="StatusIndicator" style="float: right; display: flex; align-items: center;">
-                        <div class="spinner" id="mtbSpinner" style="display: none;"></div> <!-- MTB Spinner -->
-                        <div id="statusLight" style="width: 15px; height: 15px; border-radius: 50%; margin-right: 5px; background-color: grey;"></div>
-                        <span id="statusText">Checking...</span>
-                    </span>
+        <div class="tab-content" id="ControlPanel" style="display: none;">
+            <div class="control-panel-container" style="display: flex; justify-content: space-between;">
+                
+                <!-- MTB Control Section -->
+                <div class="control-panel-section" style="flex: 1; padding-right: 20px; border-right: 1px solid #ccc;">
+                    <div class="panel-header">
+                        <img src="{{ url_for('static', filename='MTB.png') }}" alt="MTB">
+                        <h2>MTB</h2>
+                        <span id="StatusIndicator" style="float: right; display: flex; align-items: center;">
+                            <div id="statusLight" style="width: 15px; height: 15px; border-radius: 50%; margin-right: 5px; background-color: grey;"></div>
+                            <span id="statusText">Checking...</span>
+                        </span>
+                    </div>
+                    <button onclick="startMTB()">Start MTB</button>
+                    <button onclick="stopMTB()">Stop MTB</button>
+                    <button onclick="restartMTB()">Restart MTB</button>
                 </div>
-                <button onclick="startMTB()">Start MTB</button>
-                <button onclick="stopMTB()">Stop MTB</button>
-                <button onclick="restartMTB()">Restart MTB</button>
-                <div class="log-container" id="logContainerMTB">
-                    <pre id="logOutput"></pre> <!-- MTB log output -->
-                </div>
-            </div>
-        </div>
-
-        <!-- MTdB Logs Panel -->
-        <div class="tab-content" id="MTdBPanel" style="display: none;">
-            <div class="control-panel">
-                <div class="panel-header">
-                    <img src="{{ url_for('static', filename='MTdB.png') }}" alt="MTdB">
-                    <h2>MTdB</h2>
-                    <span id="StatusIndicator" style="float: right; display: flex; align-items: center;">
-                        <div class="spinner" id="mtdbSpinner" style="display: none;"></div> <!-- MTdB Spinner -->
-                        <div id="mtdbStatusLight" style="width: 15px; height: 15px; border-radius: 50%; margin-right: 5px; background-color: grey;"></div>
-                        <span id="mtdbStatusText">Checking...</span>
-                    </span>
-                </div>
-                <button onclick="startMTdB()">Start MTdB</button>
-                <button onclick="stopMTdB()">Stop MTdB</button>
-                <button onclick="restartMTdB()">Restart MTdB</button>
-                <div class="log-container" id="logContainerMTdB">
-                    <pre id="logOutputMTdB"></pre> <!-- MTdB log output -->
+                
+                <!-- Divider -->
+                <div style="border-left: 1px solid #ccc; margin-left: 20px; margin-right: 20px;"></div>
+        
+                <!-- MTdB Control Section -->
+                <div class="control-panel-section" style="flex: 1; padding-left: 20px;">
+                    <div class="panel-header">
+                        <img src="{{ url_for('static', filename='MTdB.png') }}" alt="MTdB">
+                        <h2>MTdB</h2>
+                        <span id="StatusIndicator" style="float: right; display: flex; align-items: center;">
+                            <div id="mtdbStatusLight" style="width: 15px; height: 15px; border-radius: 50%; margin-right: 5px; background-color: grey;"></div>
+                            <span id="mtdbStatusText">Checking...</span>
+                        </span>
+                    </div>
+                    <button onclick="startMTdB()">Start MTdB</button>
+                    <button onclick="stopMTdB()">Stop MTdB</button>
+                    <button onclick="restartMTdB()">Restart MTdB</button>
                 </div>
             </div>
         </div>
-
+        
         <div class="tab-content" id="Statistics" style="display: none;">
             <div class="control-panel">
                 <div class="panel-header">

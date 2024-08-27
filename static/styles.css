@@ -107,33 +107,40 @@ body {
     margin: 0;
     font-weight: bold;
 }
+.control-panel-container {
+    display: flex;
+    justify-content: space-between;
+}
 
-/* Buttons and Inputs */
-.control-panel button{
-    width: 30%; /* Make buttons narrower */
-    padding: 8px; /* Reduce padding to make them appear more compact */
-    border-radius: 5px;
-    border: none;
-    background-color: #007bff;
-    color: #ffffff;
-    font-size: 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+.control-panel-section {
+    flex: 1;
+    padding: 20px;
 }
-.control-panel button:hover, input[type="submit"]:hover {
-    background-color: #0056b3;
-}
-.log-container {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #62326e5d;
-    border-radius: 8px;
-    height: 300px;
-    overflow-y: auto;
+.control-panel-section button {
+    margin-top: 10px;
+    width: 50%; /* Keep the width to 50% */
+    padding: 15px; /* Make buttons thicker with more padding */
+    border-radius: 8px; /* Slightly round corners */
+    border: 2px solid #444; /* Add a thicker border */
+    background-color: #007bff; /* Default background color */
     color: #ffffff;
+    font-size: 18px; /* Increase the font size for a bolder look */
+    cursor: pointer; /* Make the cursor a pointer to indicate clickability */
+    display: block; /* Ensure block-level element */
+    margin-left: auto; /* Center the button */
+    margin-right: auto; /* Center the button */
+    text-align: center; /* Align text in the center */
+}
+.control-panel-section button:hover {
+    background-color: #0056b3; /* Change background to blueish color on hover */
+    border-color: #0056b3; /* Match border color to background */
+    color: #ffffff; /* Ensure the text remains white */
+    cursor: pointer; /* Ensure the cursor changes to a pointer */
+}
+.divider {
+    width: 1px;
+    background-color: #ccc;
+    margin: 0 20px;
 }
 summary {
     cursor: pointer;
@@ -316,9 +323,53 @@ input[type="submit"]:hover {
 .loss {
     color: #dc3545; /* Red for loss */
 }
-
-/* Centering the table in the Statistics panel */
 .centered-table {
     display: flex;
     justify-content: center;
+}
+.confirmation-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #A020F0;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    z-index: 1000;
+}
+.confirmation-message.error {
+    background-color: #dc3545; /* Red for error */
+}
+/* Status Light Default */
+#statusLight, #mtdbStatusLight {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 5px;
+    transition: background-color 0.3s ease; /* Smooth color transition */
+}
+
+/* Glowing Effect */
+.glow {
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.6); /* Glowing green shadow */
+    animation: pulse 2s infinite; /* Pulsing animation */
+}
+
+/* Pulsing animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1); /* Initial size */
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); /* Initial glow */
+    }
+    50% {
+        transform: scale(1.2); /* Scale up */
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.8); /* Intensify glow */
+    }
+    100% {
+        transform: scale(1); /* Back to original size */
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); /* Back to initial glow */
+    }
 }

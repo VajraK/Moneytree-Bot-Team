@@ -21,13 +21,6 @@ tabButtons.forEach(button => {
         localStorage.setItem('activeTab', target);
         // Show the selected tab
         showTab(target);
-
-        // Force scroll to the bottom after switching to a tab
-        if (target === 'MTBPanel') {
-            scrollToBottom(logContainerMTB);
-        } else if (target === 'MTdBPanel') {
-            scrollToBottom(logContainerMTdB);
-        }
     });
 });
 
@@ -35,99 +28,126 @@ tabButtons.forEach(button => {
 document.addEventListener('DOMContentLoaded', () => {
     const activeTab = localStorage.getItem('activeTab') || 'homePanel'; // Default to homePanel if no tab is saved
     showTab(activeTab);
-
-    // Scroll to the bottom of the log containers after a short delay to ensure they're fully rendered
-    setTimeout(() => {
-        scrollToBottom(logContainerMTB);  // Scroll the MTB log container
-        scrollToBottom(logContainerMTdB); // Scroll the MTdB log container
-    }, 100); // Delay of 100ms to ensure full rendering
 });
+
+// Function to show a confirmation message
+function showConfirmation(message, type = 'success') {
+    const confirmationDiv = document.createElement('div');
+    confirmationDiv.className = `confirmation-message ${type}`;
+    confirmationDiv.textContent = message;
+    
+    // Append confirmation to the body or a specific container
+    document.body.appendChild(confirmationDiv);
+    
+    // Automatically remove the message after 3 seconds
+    setTimeout(() => {
+        confirmationDiv.remove();
+    }, 3000);
+}
 
 // Functions to start, stop, and restart MTB
 function startMTB() {
-    console.log("Start MTB button clicked");
-    fetch('/start_mtb', { method: 'POST' });
+    fetch('/start_mtb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTB started successfully.');
+            } else {
+                showConfirmation('Failed to start MTB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to start MTB.', 'error');
+        });
 }
 
 function stopMTB() {
-    console.log("Stop MTB button clicked");
-    fetch('/stop_mtb', { method: 'POST' });
+    fetch('/stop_mtb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTB stopped successfully.');
+            } else {
+                showConfirmation('Failed to stop MTB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to stop MTB.', 'error');
+        });
 }
 
 function restartMTB() {
-    console.log("Restart MTB button clicked");
-    fetch('/restart_mtb', { method: 'POST' });
+    fetch('/restart_mtb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTB restarted successfully.');
+            } else {
+                showConfirmation('Failed to restart MTB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to restart MTB.', 'error');
+        });
 }
 
 // Functions to start, stop, and restart MTdB
 function startMTdB() {
-    console.log("Start MTdB button clicked");
-    fetch('/start_mtdb', { method: 'POST' });
+    fetch('/start_mtdb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTdB started successfully.');
+            } else {
+                showConfirmation('Failed to start MTdB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to start MTdB.', 'error');
+        });
 }
 
 function stopMTdB() {
-    console.log("Stop MTdB button clicked");
-    fetch('/stop_mtdb', { method: 'POST' });
+    fetch('/stop_mtdb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTdB stopped successfully.');
+            } else {
+                showConfirmation('Failed to stop MTdB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to stop MTdB.', 'error');
+        });
 }
 
 function restartMTdB() {
-    console.log("Restart MTdB button clicked");
-    fetch('/restart_mtdb', { method: 'POST' });
-}
-
-// EventSource to stream logs from the MTB service
-const evtSourceMTB = new EventSource('/logs/mtb');
-const logOutputMTB = document.getElementById('logOutput');
-const logContainerMTB = document.getElementById('logContainerMTB');
-
-// Handle MTB log messages
-evtSourceMTB.onmessage = function(event) {
-    const logLine = document.createElement('div');
-    logLine.textContent = event.data;
-    logOutputMTB.appendChild(logLine);
-    scrollToBottom(logContainerMTB);
-};
-
-// EventSource to stream logs from the MTdB service
-const evtSourceMTdB = new EventSource('/logs/mtdb');
-const logOutputMTdB = document.getElementById('logOutputMTdB');
-const logContainerMTdB = document.getElementById('logContainerMTdB');
-
-// Handle MTdB log messages
-evtSourceMTdB.onmessage = function(event) {
-    const logLine = document.createElement('div');
-    logLine.textContent = event.data;
-    logOutputMTdB.appendChild(logLine);
-    scrollToBottom(logContainerMTdB);
-};
-
-// Function to scroll to the bottom of the log container
-function scrollToBottom(container) {
-    if (container) {
-        container.scrollTop = container.scrollHeight;
-    }
+    fetch('/restart_mtdb', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                showConfirmation('MTdB restarted successfully.');
+            } else {
+                showConfirmation('Failed to restart MTdB.', 'error');
+            }
+        })
+        .catch(() => {
+            showConfirmation('Failed to restart MTdB.', 'error');
+        });
 }
 
 // Update the status indicator based on whether MTB is running
 function updateMTBStatus() {
-    const mtbSpinner = document.getElementById('mtbSpinner');
-    mtbSpinner.style.display = 'inline-block'; // Show spinner while fetching status
-    fetch('/mtb_status')
+    fetch('/mtb_status')  // Assuming this is the correct Flask route
         .then(response => response.json())
         .then(data => {
             const statusLight = document.getElementById('statusLight');
             const statusText = document.getElementById('statusText');
             
             if (data.status === 'running') {
-                statusLight.style.backgroundColor = 'green';
+                statusLight.style.backgroundColor = 'green';  // Set background color to green
+                statusLight.classList.add('glow');  // Add glowing effect when running
                 statusText.textContent = 'Running';
             } else {
-                statusLight.style.backgroundColor = 'red';
+                statusLight.style.backgroundColor = 'red';  // Set background color to red
+                statusLight.classList.remove('glow');  // Remove glowing effect when stopped
                 statusText.textContent = 'Stopped';
             }
-        })
-        .finally(() => {
-            mtbSpinner.style.display = 'none'; // Hide spinner after status is fetched
         })
         .catch(error => {
             console.error('Error fetching MTB status:', error);
@@ -136,39 +156,37 @@ function updateMTBStatus() {
 
 // Update the status indicator based on whether MTdB is running
 function updateMTdBStatus() {
-    const mtdbSpinner = document.getElementById('mtdbSpinner');
-    mtdbSpinner.style.display = 'inline-block'; // Show spinner while fetching status
-    fetch('/mtdb_status')
+    fetch('/mtdb_status')  // Assuming this is the correct Flask route
         .then(response => response.json())
         .then(data => {
-            const statusLight = document.getElementById('mtdbStatusLight');
-            const statusText = document.getElementById('mtdbStatusText');
+            const mtdbStatusLight = document.getElementById('mtdbStatusLight');
+            const mtdbStatusText = document.getElementById('mtdbStatusText');
             
             if (data.status === 'running') {
-                statusLight.style.backgroundColor = 'green';
-                statusText.textContent = 'Running';
+                mtdbStatusLight.style.backgroundColor = 'green';  // Set background color to green
+                mtdbStatusLight.classList.add('glow');  // Add glowing effect when running
+                mtdbStatusText.textContent = 'Running';
             } else {
-                statusLight.style.backgroundColor = 'red';
-                statusText.textContent = 'Stopped';
+                mtdbStatusLight.style.backgroundColor = 'red';  // Set background color to red
+                mtdbStatusLight.classList.remove('glow');  // Remove glowing effect when stopped
+                mtdbStatusText.textContent = 'Stopped';
             }
-        })
-        .finally(() => {
-            mtdbSpinner.style.display = 'none'; // Hide spinner after status is fetched
         })
         .catch(error => {
             console.error('Error fetching MTdB status:', error);
         });
 }
 
-// Check MTB and MTdB statuses every 5 seconds
-setInterval(updateMTBStatus, 5000);
-setInterval(updateMTdBStatus, 5000);
-
-// Also check statuses when the page loads
+// Check the statuses when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     updateMTBStatus();
     updateMTdBStatus();
+
+    // Optionally, update statuses periodically (e.g., every 5 seconds)
+    setInterval(updateMTBStatus, 5000);
+    setInterval(updateMTdBStatus, 5000);
 });
+
 
 const images = document.querySelectorAll('.image-container img');
 

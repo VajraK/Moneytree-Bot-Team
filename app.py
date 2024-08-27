@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import yaml
 import json
 import os
@@ -7,7 +7,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status, stream_logs
+from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status
 import bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -230,12 +230,3 @@ def restart_mtdb():
 def mtdb_status():
     status = get_service_status('mtdb')
     return {'status': status}
-
-@app.route('/logs/<service_name>')
-@login_required
-@limiter.exempt
-def logs(service_name):
-    if service_name in ['mtb', 'mtdb']:
-        return Response(stream_logs(service_name), mimetype='text/event-stream')
-    else:
-        return "Invalid service name", 400
