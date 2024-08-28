@@ -330,10 +330,24 @@ async def transaction():
                     # Capture token amount, transaction hash, initial ETH balance, and initial price from buy_token function
                     token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash)
 
+                    if token_amount is None:
+                        logging.error(f"No token amount for token {token_address}.")
+                        return jsonify({'status': 'failed', 'reason': 'Failed to fetch token amount'}), 400
+
                     # Fetch token decimals
                     token_decimals = get_token_decimals(token_address)
-                    token_amount = token_amount / (10 ** token_decimals)
-                    initial_price = initial_price / (10 ** token_decimals)
+                    if token_decimals is None:
+                        logging.error(f"Failed to fetch decimals for token {token_address}.")
+                        log_transaction({
+                            "post_hash": tx_hash,
+                            "sell": "NO",
+                            "fail": "Failed to fetch token decimals.",
+                            "profit_loss": ""
+                        })
+                        return jsonify({'status': 'failed', 'reason': 'Failed to fetch token decimals'}), 400
+                    else:
+                        token_amount = token_amount / (10 ** token_decimals)
+                        initial_price = initial_price / (10 ** token_decimals)
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
