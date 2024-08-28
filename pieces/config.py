@@ -26,7 +26,7 @@ def update_trading_parameters(config, form):
     config['SLIPPAGE_TOLERANCE'] = convert_to_number(form.get('SLIPPAGE_TOLERANCE', config.get('SLIPPAGE_TOLERANCE')), config.get('SLIPPAGE_TOLERANCE'))
     config['PRICE_INCREASE_THRESHOLD'] = convert_to_number(form.get('PRICE_INCREASE_THRESHOLD', config.get('PRICE_INCREASE_THRESHOLD')), config.get('PRICE_INCREASE_THRESHOLD'))
     config['PRICE_DECREASE_THRESHOLD'] = convert_to_number(form.get('PRICE_DECREASE_THRESHOLD', config.get('PRICE_DECREASE_THRESHOLD')), config.get('PRICE_DECREASE_THRESHOLD'))
-    config['NO_CHANGE_THRESHOLD_PERCENT'] = convert_to_number(form.get('NO_CHANGE_THRESHOLD_PERCENT', config.get('NO_CHANGE_THRESHOLD_PERCENT')), config.get('NO_CHANGE_THRESHOLD_PERCENT'))
+    config['NO_CHANGE_THRESHOLD'] = convert_to_number(form.get('NO_CHANGE_THRESHOLD', config.get('NO_CHANGE_THRESHOLD')), config.get('NO_CHANGE_THRESHOLD'))
     config['NO_CHANGE_TIME_MINUTES'] = convert_to_number(form.get('NO_CHANGE_TIME_MINUTES', config.get('NO_CHANGE_TIME_MINUTES')), config.get('NO_CHANGE_TIME_MINUTES'))
     config['MIN_MARKET_CAP'] = convert_to_number(form.get('MIN_MARKET_CAP', config.get('MIN_MARKET_CAP')), config.get('MIN_MARKET_CAP'))
     config['MAX_MARKET_CAP'] = convert_to_number(form.get('MAX_MARKET_CAP', config.get('MAX_MARKET_CAP')), config.get('MAX_MARKET_CAP'))

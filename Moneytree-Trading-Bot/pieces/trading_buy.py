@@ -2,6 +2,7 @@ import logging
 import os
 import yaml
 import json
+import time
 from datetime import datetime, timedelta, timezone
 from web3 import Web3
 from pieces.trading_utils import (
@@ -81,6 +82,9 @@ def buy_token(token_address, amount_eth, trans_hash):
     gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
     retry_count = 0  # Track the number of retries
 
+    # Retry delays: 1 second before 1st retry, 8 seconds before 2nd, 15 seconds before 3rd
+    retry_delays = [3, 10, 18]
+
     try:
         logging.info(f"Starting buy process for token: {token_address} with {amount_eth} ETH")
 
@@ -94,8 +98,9 @@ def buy_token(token_address, amount_eth, trans_hash):
             # Log failure for scam detected
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "NO-BUY",
-                "fail_reason": scam_reason,
+                "buy": "NO",
+                "sell": "NO",
+                "fail": scam_reason,
                 "profit_loss": ""
             })
             return None, None, None, None
@@ -114,8 +119,9 @@ def buy_token(token_address, amount_eth, trans_hash):
             logging.warning(f"Insufficient balance for transaction. Required: {web3.from_wei(required_balance, 'ether')} ETH")
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "NO-BUY",
-                "fail_reason": "Insufficient funds in wallet.",
+                "buy": "NO",
+                "sell": "NO",
+                "fail": "Insufficient funds in wallet.",
                 "profit_loss": ""
             })
             return None, None, initial_eth_balance, None
@@ -187,6 +193,12 @@ def buy_token(token_address, amount_eth, trans_hash):
 
                 # Send the transaction
                 tx_hash = send_transaction(signed_txn)
+                log_transaction({
+                        "post_hash": trans_hash,
+                        "buy": "YES",
+                        "buy_tx": tx_hash.hex(),
+                        "profit_loss": ""
+                    })
                 logging.info(f"Transaction sent with hash: {tx_hash.hex()}")
 
                 # Wait for the transaction to be mined and check final token balance
@@ -205,12 +217,18 @@ def buy_token(token_address, amount_eth, trans_hash):
                 retry_count += 1
                 logging.error(f"Buy transaction failed on attempt {retry_count}. Error: {e}")
 
+                # Wait before retrying based on retry_count
+                if retry_count < max_retries:
+                    logging.info(f"Waiting {retry_delays[retry_count - 1]} seconds before retrying...")
+                    time.sleep(retry_delays[retry_count - 1])
+
                 if retry_count >= max_retries:
                     logging.error("Max retries reached. Skipping the buy transaction.")
                     log_transaction({
                         "post_hash": trans_hash,
-                        "status": "NO-BUY",
-                        "fail_reason": "Buying token failed after retries.",
+                        "buy": "NO",
+                        "sell": "NO",
+                        "fail": "Buying tokens failed after retries.",
                         "profit_loss": ""
                     })
                     return None, None, None, None

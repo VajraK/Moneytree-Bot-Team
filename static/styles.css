@@ -297,18 +297,6 @@ input[type="submit"]:hover {
 #transactionTable tr:hover {
     background-color: #3b3b3b; /* Hover background for better interaction */
 }
-
-/* Status column color coding */
-.status-buy {
-    color: #28a745; /* Green for success */
-    font-weight: bold;
-}
-
-.status-no-buy {
-    color: #dc3545; /* Red for fail */
-    font-weight: bold;
-}
-
 /* Post hash shortened view */
 .short-hash {
     color: #FFD700; /* Gold color for post hash */
@@ -372,4 +360,36 @@ input[type="submit"]:hover {
         transform: scale(1); /* Back to original size */
         box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); /* Back to initial glow */
     }
+}
+.short-hash {
+    color: #FFD700; /* Gold color for the hash */
+    cursor: pointer; /* Indicate that it's clickable */
+    font-weight: bold;
+}
+.short-hash:hover {
+    text-decoration: underline; /* Add an underline on hover */
+}
+.token-symbol {
+    color: #FFD700; /* Gold color for token symbol */
+    cursor: pointer; /* Indicate it's clickable */
+    font-weight: bold;
+}
+.token-symbol:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+/* Buy or Sell set to YES (green) */
+.status-yes {
+    color: #28a745;
+    cursor: pointer; /* Only make cursor a pointer if there's a transaction hash to copy */
+    font-weight: bold
+}
+/* Buy or Sell set to NO or anything else (red) */
+.status-no {
+    color: #dc3545;
+    cursor: default; /* Default cursor for no action */
+    font-weight: bold
+}
+/* Hover effect for copying when there's a transaction hash */
+.buy-tx.status-yes:hover, .sell-tx.status-yes:hover {
+    text-decoration: underline; /* Underline only when 'YES' */
 }

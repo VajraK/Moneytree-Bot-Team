@@ -218,7 +218,31 @@ function formatPostHash(hash) {
     return hash.slice(0, 7) + "..." + hash.slice(-7); // Shorten hash display
 }
 
-// Function to update the transaction table
+// Function to copy text to the clipboard using the Clipboard API
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        // Use Clipboard API if available
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showConfirmation('Copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Error copying to clipboard:', err);
+                showConfirmation('Failed to copy to clipboard', 'error');
+            });
+    } else {
+        // Fallback method using a temporary input if Clipboard API is not available
+        const tempInput = document.createElement('input');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        showConfirmation('Copied to clipboard (fallback method).');
+    }
+}
+
+// Function to update the transaction table and add click-to-copy functionality
 function updateTransactionTable(transactions) {
     const tableBody = document.querySelector('#transactionTable tbody');
     tableBody.innerHTML = '';  // Clear the table first
@@ -226,17 +250,29 @@ function updateTransactionTable(transactions) {
     transactions.forEach(transaction => {
         const row = document.createElement('tr');
 
-        const statusClass = transaction.status === 'SUCCESS' ? 'status-buy' : 'status-no-buy';
+        const buyStatusClass = transaction.buy === 'YES' ? 'status-yes' : 'status-no';
+        const sellStatusClass = transaction.sell === 'YES' ? 'status-yes' : 'status-no';
         const profitLossClass = transaction.profit_loss > 0 ? 'profit' : 'loss';
 
+        // Add clickable elements for post_hash, buy_tx, and sell_tx
         row.innerHTML = `
-            <td>${new Date(transaction.time).toLocaleString()}</td>
-            <td class="short-hash">${formatPostHash(transaction.post_hash)}</td>
+            <td>${new Date(transaction.time).toLocaleString()}</td> <!-- Time column -->
+            <td class="short-hash" onclick="copyToClipboard('${transaction.post_hash}')">${formatPostHash(transaction.post_hash)}</td> <!-- Post hash copies -->
             <td>${transaction.wallet_name}</td>
-            <td>${transaction.token_symbol}</td>
+            <td class="token-symbol" onclick="copyToClipboard('${transaction.token_hash}')">${transaction.token_symbol}</td> <!-- Token symbol copies token_hash -->
             <td>${transaction.amount_of_eth}</td>
-            <td class="${statusClass}">${transaction.status}</td>
-            <td>${transaction.fail_reason || ''}</td>
+            
+            <!-- Buy column: only clickable if buy_tx exists -->
+            <td class="buy-tx ${buyStatusClass}" ${transaction.buy_tx ? `onclick="copyToClipboard('${transaction.buy_tx}')"` : ''}>
+                ${transaction.buy || ''}
+            </td>
+            
+            <!-- Sell column: only clickable if sell_tx exists -->
+            <td class="sell-tx ${sellStatusClass}" ${transaction.sell_tx ? `onclick="copyToClipboard('${transaction.sell_tx}')"` : ''}>
+                ${transaction.sell || ''}
+            </td>
+
+            <td>${transaction.fail || ''}</td>
             <td class="${profitLossClass}">${transaction.profit_loss || ''}</td>
         `;
 

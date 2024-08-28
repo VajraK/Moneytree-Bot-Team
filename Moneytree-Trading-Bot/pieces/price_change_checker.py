@@ -20,13 +20,13 @@ except yaml.YAMLError as exc:
     exit()
 
 # Load environment variables
-NO_CHANGE_THRESHOLD_PERCENT = config['NO_CHANGE_THRESHOLD_PERCENT']
+NO_CHANGE_THRESHOLD = config['NO_CHANGE_THRESHOLD']  # now treated as a decimal
 NO_CHANGE_TIME_MINUTES = config['NO_CHANGE_TIME_MINUTES']
 
 def check_no_change_threshold(start_time, price_history, monitoring_id, symbol, token_amount):
     current_time = datetime.now(timezone.utc)
     intervals_passed = (current_time - start_time) // timedelta(minutes=NO_CHANGE_TIME_MINUTES)
-    threshold_percent = NO_CHANGE_THRESHOLD_PERCENT  # Use the percentage from the config
+    threshold_decimal = NO_CHANGE_THRESHOLD  # Use the decimal value from the config
 
     if intervals_passed > 0:
         for interval in range(intervals_passed):
@@ -45,11 +45,11 @@ def check_no_change_threshold(start_time, price_history, monitoring_id, symbol, 
             price_increase = (max_price - initial_price) / initial_price
             price_decrease = (initial_price - min_price) / initial_price
 
-            if abs(price_increase) < NO_CHANGE_THRESHOLD_PERCENT and abs(price_decrease) < NO_CHANGE_THRESHOLD_PERCENT:
-                logging.info(f"Monitoring {monitoring_id} — No significant price change — {threshold_percent:.2f}%. — detected in a {NO_CHANGE_TIME_MINUTES} minutes interval. Selling the token.")
-                return True, token_amount, f'Price did not change significantly — {threshold_percent:.2f}%. — in a {NO_CHANGE_TIME_MINUTES} minutes interval.', start_time
+            if abs(price_increase) < threshold_decimal and abs(price_decrease) < threshold_decimal:
+                logging.info(f"Monitoring {monitoring_id} — No significant price change — {threshold_decimal * 100:.2f}%. — detected in a {NO_CHANGE_TIME_MINUTES} minutes interval. Selling the token.")
+                return True, token_amount, f'Price did not change significantly — {threshold_decimal * 100:.2f}%. — in a {NO_CHANGE_TIME_MINUTES} minutes interval.', start_time
             else:
-                logging.info(f"Monitoring {monitoring_id} — Significant price — {threshold_percent:.2f}%. — in a {NO_CHANGE_TIME_MINUTES} minutes interval. Continuing monitoring.")
+                logging.info(f"Monitoring {monitoring_id} — Significant price change — {threshold_decimal * 100:.2f}%. — in a {NO_CHANGE_TIME_MINUTES} minutes interval. Continuing monitoring.")
                 return False, None, None, interval_end_time  # Return the updated start time
 
     return False, None, None, start_time  # Return the original start time if no intervals passed

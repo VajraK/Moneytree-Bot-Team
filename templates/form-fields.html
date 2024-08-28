@@ -27,7 +27,7 @@
     <label for="AMOUNT_OF_ETH">Amount of ETH:</label>
     <input type="text" name="AMOUNT_OF_ETH" step="0.01" value="{{ config.AMOUNT_OF_ETH }}">
 
-    <label for="MOONBAG">Moonbag:</label>
+    <label for="MOONBAG">Moonbag: [decimals]</label>
     <input type="text" name="MOONBAG" step="0.01" value="{{ config.MOONBAG }}">
 
     <label for="BASE_FEE_MULTIPLIER">Base Fee Multiplier:</label>
@@ -39,25 +39,25 @@
     <label for="TOTAL_FEE_MULTIPLIER">Total Fee Multiplier:</label>
     <input type="text" name="TOTAL_FEE_MULTIPLIER" value="{{ config.TOTAL_FEE_MULTIPLIER }}">
 
-    <label for="SLIPPAGE_TOLERANCE">Slippage Tolerance:</label>
+    <label for="SLIPPAGE_TOLERANCE">Slippage Tolerance: [decimals]</label>
     <input type="text" name="SLIPPAGE_TOLERANCE" value="{{ config.SLIPPAGE_TOLERANCE }}">
 
-    <label for="PRICE_INCREASE_THRESHOLD">Price Increase Threshold:</label>
+    <label for="PRICE_INCREASE_THRESHOLD">Price Increase Threshold: [decimals]</label>
     <input type="text" name="PRICE_INCREASE_THRESHOLD" value="{{ config.PRICE_INCREASE_THRESHOLD }}">
 
-    <label for="PRICE_DECREASE_THRESHOLD">Price Decrease Threshold:</label>
+    <label for="PRICE_DECREASE_THRESHOLD">Price Decrease Threshold: [decimals]</label>
     <input type="text" name="PRICE_DECREASE_THRESHOLD" value="{{ config.PRICE_DECREASE_THRESHOLD }}">
 
-    <label for="NO_CHANGE_THRESHOLD_PERCENT">No Change Threshold Percent:</label>
-    <input type="text" name="NO_CHANGE_THRESHOLD_PERCENT" value="{{ config.NO_CHANGE_THRESHOLD_PERCENT }}">
+    <label for="NO_CHANGE_THRESHOLD">No Change Threshold: [decimals]</label>
+    <input type="text" name="NO_CHANGE_THRESHOLD" value="{{ config.NO_CHANGE_THRESHOLD }}">
 
-    <label for="NO_CHANGE_TIME_MINUTES">No Change Time (Minutes):</label>
+    <label for="NO_CHANGE_TIME_MINUTES">No Change Time [minutes]:</label>
     <input type="text" name="NO_CHANGE_TIME_MINUTES" value="{{ config.NO_CHANGE_TIME_MINUTES }}">
 
-    <label for="MIN_MARKET_CAP">Min Market Cap:</label>
+    <label for="MIN_MARKET_CAP">Min Market Cap: [usd]</label>
     <input type="text" name="MIN_MARKET_CAP" value="{{ config.MIN_MARKET_CAP }}">
 
-    <label for="MAX_MARKET_CAP">Max Market Cap:</label>
+    <label for="MAX_MARKET_CAP">Max Market Cap: [usd]</label>
     <input type="text" name="MAX_MARKET_CAP" value="{{ config.MAX_MARKET_CAP }}">
 </details>
 

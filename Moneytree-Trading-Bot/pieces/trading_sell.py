@@ -79,6 +79,9 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
     gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
     retry_count = 0  # Track the number of retries
 
+    # Retry delays: 1 second before 1st retry, 8 seconds before 2nd, 15 seconds before 3rd
+    retry_delays = [3, 10, 18]
+
     try:
         logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
 
@@ -150,8 +153,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 logging.error("Token approval failed or took too long.")
                 log_transaction({
                     "post_hash": trans_hash,
-                    "status": "NO-BUY",
-                    "fail_reason": "Token sell approval failed.",
+                    "sell": "NO",
+                    "fail": "Token sell approval failed.",
                     "profit_loss": ""
                 })
                 return None, None
@@ -214,6 +217,11 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 retry_count += 1
                 logging.error(f"Sell transaction failed on attempt {retry_count}. Error: {e}")
 
+                # Wait before retrying based on retry_count
+                if retry_count < max_retries:
+                    logging.info(f"Waiting {retry_delays[retry_count - 1]} seconds before retrying...")
+                    time.sleep(retry_delays[retry_count - 1])
+
                 # If fallback is necessary due to 'UniswapV2: K' error
                 if 'UniswapV2: K' in str(e):
                     logging.warning("UniswapV2: K error occurred, retrying with swapExactTokensForETHSupportingFeeOnTransferTokens...")
@@ -259,8 +267,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                         logging.error("Max retries for fallback transaction reached. Skipping the sell transaction.")
                         log_transaction({
                             "post_hash": trans_hash,
-                            "status": "NO-BUY",
-                            "fail_reason": "Selling token failed.2",
+                            "sell": "NO",
+                            "fail": "Special selling of token failed.",
                             "profit_loss": ""
                         })
                         return None, None
@@ -270,8 +278,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                     logging.error("Max retries reached. Skipping the sell transaction.")
                     log_transaction({
                         "post_hash": trans_hash,
-                        "status": "NO-BUY",
-                        "fail_reason": "Selling token failed.",
+                        "sell": "NO",
+                        "fail": "Selling token failed.",
                         "profit_loss": ""
                     })
                     return None, None
@@ -284,8 +292,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
             logging.error("Failed to detect balance change after sell.")
             log_transaction({
                 "post_hash": trans_hash,
-                "status": "NO-BUY",
-                "fail_reason": "Could not detect change in ETH balance after sell.",
+                "sell": "XXX",
+                "fail": "Could not detect change in ETH balance after sell.",
                 "profit_loss": ""
             })
             return tx_hash.hex(), None
@@ -308,8 +316,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
         # Statistics
         log_transaction({
             "post_hash": trans_hash,
-            "status": "BUY",
-            "fail_reason": "",
+            "sell": "YES",
+            "sell_tx": tx_hash.hex(),
             "profit_loss": f"{profit_loss:.18f}"
         })
 

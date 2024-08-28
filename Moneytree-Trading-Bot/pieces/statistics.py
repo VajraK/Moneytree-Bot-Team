@@ -103,9 +103,13 @@ def log_transaction(data):
         existing_entry.update({
             "wallet_name": data.get("wallet_name", existing_entry["wallet_name"]),
             "token_symbol": data.get("token_symbol", existing_entry["token_symbol"]),
+            "token_hash": data.get("token_hash", existing_entry["token_hash"]),
             "amount_of_eth": data.get("amount_of_eth", existing_entry["amount_of_eth"]),
-            "status": data.get("status", existing_entry["status"]),
-            "fail_reason": data.get("fail_reason", existing_entry["fail_reason"]),
+            "buy": data.get("buy", existing_entry["buy"]),
+            "buy_tx": data.get("buy_tx", existing_entry["buy_tx"]),
+            "sell": data.get("sell", existing_entry["sell"]),
+            "sell_tx": data.get("sell_tx", existing_entry["sell_tx"]),
+            "fail": data.get("fail", existing_entry["fail"]),
             "profit_loss": data.get("profit_loss", existing_entry["profit_loss"])
         })
     else:
@@ -115,9 +119,13 @@ def log_transaction(data):
             "post_hash": post_hash,  # Post hash (tx_hash)
             "wallet_name": data.get("wallet_name", "N/A"),  # Wallet name
             "token_symbol": data.get("token_symbol", "N/A"),  # Token symbol
+            "token_hash": data.get("token_hash", "N/A"),
             "amount_of_eth": data.get("amount_of_eth", "N/A"),  # Amount of ETH
-            "status": data.get("status", ""),  # Transaction status
-            "fail_reason": data.get("fail_reason", ""),  # Failure reason (if any)
+            "buy": data.get("buy", ""),  # Transaction status
+            "buy_tx": data.get("buy_tx", ""), 
+            "sell": data.get("sell", ""),
+            "sell_tx": data.get("sell_tx", ""),
+            "fail": data.get("fail", ""),  # Failure reason (if any)
             "profit_loss": data.get("profit_loss", "")  # Profit/loss (if success)
         }
         logs.append(log_entry)

@@ -64,7 +64,7 @@ UNISWAP_V3_FACTORY_ADDRESS = config['UNISWAP_V3_FACTORY_ADDRESS']
 AMOUNT_OF_ETH = config['AMOUNT_OF_ETH']
 PRICE_INCREASE_THRESHOLD = config['PRICE_INCREASE_THRESHOLD']
 PRICE_DECREASE_THRESHOLD = config['PRICE_DECREASE_THRESHOLD']
-NO_CHANGE_THRESHOLD_PERCENT = config['NO_CHANGE_THRESHOLD_PERCENT']
+NO_CHANGE_THRESHOLD = config['NO_CHANGE_THRESHOLD']
 NO_CHANGE_TIME_MINUTES = config['NO_CHANGE_TIME_MINUTES']
 TELEGRAM_BOT_TOKEN = config['MTdB_TELEGRAM_BOT_TOKEN']
 TELEGRAM_CHAT_ID = config['MTdB_CHAT_ID']
@@ -111,6 +111,13 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address(UNISWAP_
 def calculate_token_amount(eth_amount, token_price):
     return eth_amount / token_price
 
+def get_token_decimals(token_address):
+    token_address = Web3.to_checksum_address(token_address)
+    token_contract = web3.eth.contract(address=token_address, abi=uniswap_v2_erc20_abi)
+    decimals = token_contract.functions.decimals().call()
+    logging.info(f"Token decimals for {token_address}: {decimals}")
+    return decimals
+
 def format_large_number(number):
     if number >= 1_000_000_000:
         return f"{number / 1_000_000_000:.1f}B"
@@ -129,53 +136,75 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     initial_eth_balance = transaction_details['initial_eth_balance']
     from_address = ADDRESS_MAP.get(from_name.lower())
 
-    monitoring_id = tx_hash[:8]  # Create a short identifier for the transaction
+    monitoring_id = tx_hash[:8]
 
     start_time = datetime.now(timezone.utc)
     sell_reason = ''
     price_history = []
     use_moonbag = False  # Initialize use_moonbag to ensure it is always defined
 
+    logging.info(f"Started monitoring for transaction {monitoring_id}. Initial price: {initial_price}, Token: {symbol}")
+
     while True:
-        current_price, _ = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v2_pair_abi)
-        if current_price is None:
-            current_price, _ = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v3_pool_abi)
+        try:
+            current_price = None
+            # Try fetching from Uniswap V2 first
+            v2_price, _ = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v2_pair_abi)
+            
+            if v2_price is not None and v2_price > 0:
+                current_price = v2_price
+            else:
+                # Fallback to Uniswap V3 if V2 fails
+                v3_price, _ = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v3_pool_abi)
+                if v3_price is not None and v3_price > 0:
+                    current_price = v3_price
+
+            # Skip this iteration if no valid price is fetched
             if current_price is None:
-                logging.info("Failed to fetch the current price.")
+                logging.warning(f"Failed to fetch a valid price for token {symbol} on both Uniswap V2 and V3. Retrying...")
                 await asyncio.sleep(3)
-                continue
+                continue  # Retry fetching the price after a delay
 
-        price_history.append((datetime.now(timezone.utc), current_price))
+            # Only proceed with valid prices
+            price_history.append((datetime.now(timezone.utc), current_price))
 
-        price_increase = (current_price - initial_price) / initial_price
-        price_decrease = (initial_price - current_price) / initial_price
-        percent_change = ((current_price - initial_price) / initial_price) * 100
+            price_increase = (current_price - initial_price) / initial_price
+            price_decrease = (initial_price - current_price) / initial_price
+            percent_change = ((current_price - initial_price) / initial_price) * 100
 
-        if price_increase >= PRICE_INCREASE_THRESHOLD:
-            logging.info(f"Monitoring {monitoring_id} — Current price: {current_price} ETH ({percent_change:.2f}%). — Token price increased by {price_increase * 100:.2f}%. Selling with moonbag.")
-            sell_reason = f'Price increased by {price_increase * 100:.2f}%'
-            use_moonbag = True
-            break
-        elif price_decrease >= PRICE_DECREASE_THRESHOLD:
-            logging.info(f"Monitoring {monitoring_id} — Current price: {current_price} ETH ({percent_change:.2f}%). — Token price decreased by {price_decrease * 100:.2f}%. Selling all tokens.")
-            sell_reason = f'Price decreased by {price_decrease * 100:.2f}%'
-            use_moonbag = False
-            break
+            # Log the valid price
+            logging.info(f"Monitoring {monitoring_id} — Current price: {current_price} ETH ({percent_change:.2f}%). — {token_amount} {symbol}.")
 
-        if ENABLE_PRICE_CHANGE_CHECKER:
-            no_change, token_amount_to_sell, sell_reason, start_time = check_no_change_threshold(start_time, price_history, monitoring_id, symbol, token_amount)
-            if no_change:
+            # Sell conditions...
+            if price_increase >= PRICE_INCREASE_THRESHOLD:
+                sell_reason = f"Price increased by {price_increase * 100:.2f}%"
+                use_moonbag = True
+                break
+            elif price_decrease >= PRICE_DECREASE_THRESHOLD:
+                sell_reason = f"Price decreased by {price_decrease * 100:.2f}%"
                 use_moonbag = False
                 break
 
-        logging.info(f"Monitoring {monitoring_id} — Current price: {current_price} ETH ({percent_change:.2f}%). — {token_amount} {symbol}.")
-        await asyncio.sleep(2)
+            if ENABLE_PRICE_CHANGE_CHECKER:
+                no_change, token_amount_to_sell, sell_reason, start_time = check_no_change_threshold(
+                    start_time, price_history, monitoring_id, symbol, token_amount)
+                if no_change:
+                    use_moonbag = False
+                    break
+
+            await asyncio.sleep(2)
+
+        except Exception as e:
+            logging.error(f"Error during monitoring for token {symbol}: {e}")
+            break
 
     # Execute this block after the loop ends
     sell_tx_hash = None
     profit_or_loss = None
     try:
         if ENABLE_TRADING:
+            token_decimals = get_token_decimals(token_address)
+            token_amount = token_amount * (10 ** token_decimals)
             sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, initial_eth_balance, tx_hash, use_moonbag)  # Pass initial_eth_balance here
             logging.info(f"Monitoring {monitoring_id} — Sell transaction sent with hash: {sell_tx_hash}")
     except Exception as e:
@@ -230,9 +259,13 @@ async def transaction():
                 "post_hash": data.get("tx_hash"),  # Using 'tx_hash' for post hash
                 "wallet_name": data.get("from_name"),  # Using 'from_name' for wallet name
                 "token_symbol": symbol,  # Token symbol
+                "token_hash": token_address,
                 "amount_of_eth": AMOUNT_OF_ETH,  # Amount of ETH
-                "status": "",  # Initial status when transaction is received
-                "fail_reason": "",  # No fail reason yet
+                "buy": "",
+                "buy_tx": "",
+                "sell": "",  # Initial status when transaction is received
+                "sell_tx": "",
+                "fail": "",  # No fail reason yet
                 "profit_loss": ""  # Profit/loss not calculated yet
             })
 
@@ -241,6 +274,13 @@ async def transaction():
                 market_cap_usd = calculate_market_cap(token_address)
                 if market_cap_usd is None:
                     logging.info("Market cap not available. Skipping the buy.")
+                    log_transaction({
+                        "post_hash": data.get("tx_hash"),
+                        "buy": "NO",
+                        "sell": "NO",
+                        "fail": "Market cap not available.",
+                        "profit_loss": ""
+                    })
                     return jsonify({'status': 'failed', 'reason': 'Market cap not available'}), 400
                 
                 if market_cap_usd < MIN_MARKET_CAP or market_cap_usd > MAX_MARKET_CAP:
@@ -248,8 +288,9 @@ async def transaction():
                     # Statistics
                     log_transaction({
                             "post_hash": data.get("tx_hash"),
-                            "status": "NO-BUY",
-                            "fail_reason": "Market cap not within the specified range.",
+                            "buy": "NO",
+                            "sell": "NO",
+                            "fail": "Market cap not within the specified range.",
                             "profit_loss": ""
                         })
                     return jsonify({'status': 'failed', 'reason': f'Market cap {market_cap_usd} USD not within the specified range'}), 200
@@ -288,6 +329,11 @@ async def transaction():
                 if ENABLE_TRADING:
                     # Capture token amount, transaction hash, initial ETH balance, and initial price from buy_token function
                     token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash)
+
+                    # Fetch token decimals
+                    token_decimals = get_token_decimals(token_address)
+                    token_amount = token_amount / (10 ** token_decimals)
+                    initial_price = initial_price / (10 ** token_decimals)
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
