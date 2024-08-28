@@ -9,11 +9,22 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ url_for('static', filename='MBC.png') }}" alt="MBC">
-        <h1>Moneytree Bot Console</h1>
-        <form action="{{ url_for('logout') }}" method="POST" class="logout-form">
-            <button type="submit" class="logout-button">Logout</button>
-        </form>
+        <!-- Left section for logo and title -->
+        <div class="left-section">
+            <img src="{{ url_for('static', filename='MBC.png') }}" alt="MBC">
+            <h1>Moneytree Bot Console</h1>
+        </div>
+        <!-- Center section for "Today's P/L" -->
+        <div class="center-section">
+            <div id="todaysPL">Today's Profit/Loss: 0 ETH</div>
+        </div>
+        <!-- Right section for time and logout button -->
+        <div class="right-section">
+            <span id="liveTime"></span>
+            <form action="{{ url_for('logout') }}" method="POST" class="logout-form">
+                <button type="submit" class="logout-button">Logout</button>
+            </form>
+        </div>
     </div>
 
     <!-- Tab Navigation -->

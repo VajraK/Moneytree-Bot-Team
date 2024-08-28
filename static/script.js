@@ -306,3 +306,57 @@ setInterval(fetchTransactionLogs, 5000);
 document.addEventListener('DOMContentLoaded', () => {
     fetchTransactionLogs();
 });
+
+function updateTime() {
+    const timeElement = document.getElementById('liveTime');
+    const now = new Date();
+    
+    // Formatting the time as HH:MM:SS in 24-hour format
+    const formattedTime = now.toLocaleTimeString('en-GB', { // en-GB is for 24-hour format
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false // Ensures it's 24-hour format
+    });
+    
+    timeElement.textContent = formattedTime; // Set the time text
+}
+
+// Call updateTime once immediately and then every second
+updateTime();
+setInterval(updateTime, 1000);
+
+function updateTodaysPL() {
+    fetch('/todays_pl')
+        .then(response => response.json())
+        .then(data => {
+            const todaysPL = data.todaysPL;
+            const plElement = document.getElementById('todaysPL');
+            
+            // Create the static text and keep the "ETH" part outside the colored span
+            const staticText = `Today's Profit/Loss: `;
+            const ethText = ` ETH`;  // Keep "ETH" in white
+
+            // Create a span for the dynamic profit/loss number
+            const plNumber = document.createElement('span');
+            plNumber.innerText = `${todaysPL}`;  // Only the number is placed in this span
+
+            // Apply color based on the value
+            if (todaysPL > 0) {
+                plNumber.style.color = '#28a745';  // Green for positive value
+            } else if (todaysPL < 0) {
+                plNumber.style.color = '#dc3545';  // Red for negative value
+            } else {
+                plNumber.style.color = 'white';    // White for zero or neutral
+            }
+
+            // Clear the current content of plElement and append the static text, colored number, and "ETH"
+            plElement.innerHTML = '';  // Clear existing content
+            plElement.append(staticText, plNumber, ethText);  // Append the static text, dynamic number, and "ETH"
+        })
+        .catch(error => console.error('Error fetching today\'s P/L:', error));
+}
+
+// Call updateTime once immediately and then every second
+updateTime();
+setInterval(updateTodaysPL, 1000);  // Update the P/L every second

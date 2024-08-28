@@ -393,3 +393,39 @@ input[type="submit"]:hover {
 .buy-tx.status-yes:hover, .sell-tx.status-yes:hover {
     text-decoration: underline; /* Underline only when 'YES' */
 }
+/* Style for the live time in neon pink */
+#liveTime {
+    margin-right: 20px;
+    font-size: 16px;
+    color: #FF10F0;
+    text-shadow: 0 0 8px #FF10F0;
+}
+/* Flexbox styling to align the logout button and live time to the right */
+.header .time-logout-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+/* Style for the Today's P/L section */
+#todaysPL {
+    font-size: 16px;
+    font-weight: bold;
+}
+/* Flex-grow ensures the center section occupies available space and centers the content */
+.left-section {
+    display: flex;
+    align-items: center;
+}
+.center-section {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+.right-section {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+}

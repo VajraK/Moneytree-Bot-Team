@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import yaml
-import json
 import os
 from datetime import timedelta
 from functools import wraps
@@ -8,7 +7,9 @@ from dotenv import load_dotenv
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pieces.systemd_service_manager import start_service, stop_service, restart_service, get_service_status
+from pieces.statistics import get_transactions, calculate_profit_loss, get_todays_pl
 import bcrypt
+import threading
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from redis import Redis
@@ -165,14 +166,18 @@ def update():
 @app.route('/get_transactions')
 @login_required
 @limiter.exempt
-def get_transactions():
-    # Read the transaction_logs.json file
-    try:
-        with open('logs/statistics/transaction_logs.json') as f:
-            data = json.load(f)
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': 'Unable to read transaction logs.'}), 500
+def get_transactions_route():
+    return get_transactions()
+
+# Start the background thread for calculating profit/loss
+profit_loss_thread = threading.Thread(target=calculate_profit_loss, args=(logger,), daemon=True)
+profit_loss_thread.start()
+
+@app.route('/todays_pl', methods=['GET'])
+@login_required
+@limiter.exempt
+def get_todays_pl_route():
+    return get_todays_pl(logger)
 
 @app.route('/start_mtb', methods=['POST'])
 @login_required
@@ -180,7 +185,6 @@ def start_mtb():
     success, message = start_service('mtb')
     flash(message, 'success' if success else 'danger')
     return '', 204
-
 
 @app.route('/stop_mtb', methods=['POST'])
 @login_required
