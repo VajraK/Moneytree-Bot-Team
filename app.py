@@ -48,6 +48,7 @@ from pieces.config import (
     update_trading_parameters,
     update_telegram_settings,
     update_feature_toggles,
+    update_antiscam_toggles,
     update_addresses_to_monitor
 )
 
@@ -156,6 +157,7 @@ def update():
     update_trading_parameters(config, request.form)
     update_telegram_settings(config, request.form)
     update_feature_toggles(config, request.form)
+    update_antiscam_toggles(config, request.form)
     update_addresses_to_monitor(config, request.form)
     
     # Save the updated config back to the YAML file

@@ -1,8 +1,9 @@
 import json
 import os
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import shutil
+import pytz
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,11 +23,18 @@ log_file_path = os.path.join(log_directory, 'transaction_logs.json')
 # Max number of backup logs
 backup_count = 1095
 
+# Assuming your local timezone is needed, adjust accordingly.
+local_tz = pytz.timezone('Europe/Berlin')
+
 # Function to rotate logs
 def rotate_logs():
+    # Convert the current time to the local timezone and then subtract one day to get the previous day
+    now_local = datetime.now(local_tz)
+    previous_day = now_local - timedelta(days=1)
+    timestamp = previous_day.strftime("%Y%m%d")
+
     # Archive the current log file with a timestamp suffix
     if os.path.exists(log_file_path):
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         archive_log_path = os.path.join(log_directory, f'transaction_logs_{timestamp}.json')
         shutil.move(log_file_path, archive_log_path)
         logging.info(f"Log file rotated to: {archive_log_path}")
@@ -48,16 +56,17 @@ def rotate_logs():
 
 # Function to check if a log rotation is needed (daily)
 def is_rotation_needed():
-    # Check if the current log exists and is from today
+    # Check if the current log exists and is from today in local time
     if os.path.exists(log_file_path):
         last_modified_time = datetime.fromtimestamp(os.path.getmtime(log_file_path), tz=timezone.utc)
-        current_time = datetime.now(timezone.utc)
+        last_modified_time_local = last_modified_time.astimezone(local_tz)
+        current_time_local = datetime.now(local_tz)
 
-        logging.info(f"Last log file modification time: {last_modified_time}")
-        logging.info(f"Current time: {current_time}")
+        logging.info(f"Last log file modification time (local): {last_modified_time_local}")
+        logging.info(f"Current time (local): {current_time_local}")
 
-        # Rotate if the log is from a previous day
-        if last_modified_time.date() < current_time.date():
+        # Rotate if the log is from a previous day in local time
+        if last_modified_time_local.date() < current_time_local.date():
             logging.info("Log rotation needed")
             return True
         else:

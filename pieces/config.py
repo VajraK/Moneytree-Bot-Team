@@ -56,6 +56,18 @@ def update_feature_toggles(config, form):
         elif config[key] == 'false':
             config[key] = False
 
+def update_antiscam_toggles(config, form):
+    config['ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK'] = 'true' if 'ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK' in form else 'false'
+    config['ENABLE_RENOUNCED_CHECK'] = 'true' if 'ENABLE_RENOUNCED_CHECK' in form else 'false'
+    config['ENABLE_LIQUIDITY_CHECK'] = 'true' if 'ENABLE_LIQUIDITY_CHECK' in form else 'false'
+    
+    # Convert these 'true'/'false' strings back to actual booleans
+    for key in config:
+        if config[key] == 'true':
+            config[key] = True
+        elif config[key] == 'false':
+            config[key] = False
+
 def update_addresses_to_monitor(config, form):
     addresses = form.getlist('addresses')
     names = form.getlist('names')

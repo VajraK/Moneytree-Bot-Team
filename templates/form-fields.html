@@ -108,6 +108,18 @@
 </details>
 
 <details>
+    <summary>Anti-Scam toggles</summary>
+    <label for="ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK">Enable 'High Most Likely Scam' Check:</label>
+    <input type="checkbox" name="ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK" value="true" {% if config.ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK %} checked {% endif %}>
+
+    <label for="ENABLE_RENOUNCED_CHECK">Enable 'Renounced' Check:</label>
+    <input type="checkbox" name="ENABLE_RENOUNCED_CHECK" value="true" {% if config.ENABLE_RENOUNCED_CHECK %} checked {% endif %}>
+
+    <label for="ENABLE_LIQUIDITY_CHECK">Enable 'Liquidity' Check:</label>
+    <input type="checkbox" name="ENABLE_LIQUIDITY_CHECK" value="true" {% if config.ENABLE_LIQUIDITY_CHECK %} checked {% endif %}>
+</details>
+
+<details>
     <summary>Monitored Addresses</summary>
         <table>
             <tr>
