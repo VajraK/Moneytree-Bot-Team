@@ -78,12 +78,12 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
 def buy_token(token_address, amount_eth, trans_hash):
-    max_retries = 3  # Maximum number of retries
+    max_retries = 20  # Maximum number of retries
     gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
     retry_count = 0  # Track the number of retries
 
-    # Retry delays: 1 second before 1st retry, 8 seconds before 2nd, 15 seconds before 3rd
-    retry_delays = [3, 10, 18]
+    # Retry delays: 3 seconds before 1st retry, 10 seconds before 2nd, 18 seconds before 3rd
+    retry_delays = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 8, 10]
 
     try:
         logging.info(f"Starting buy process for token: {token_address} with {amount_eth} ETH")
@@ -109,8 +109,6 @@ def buy_token(token_address, amount_eth, trans_hash):
         initial_eth_balance = check_eth_balance()
         if initial_eth_balance is None:
             raise Exception("Failed to check initial ETH balance.")
-
-        # Log wallet balance
         logging.info(f"Wallet ETH balance before transaction: {web3.from_wei(initial_eth_balance, 'ether')} ETH")
 
         # Check if the balance is sufficient
@@ -167,16 +165,16 @@ def buy_token(token_address, amount_eth, trans_hash):
                 })
                 logging.info("Transaction built successfully.")
 
-                # Estimate gas limit
-                gas_limit = web3.eth.estimate_gas(txn)
-                txn['gas'] = gas_limit
-                logging.info(f"Estimated gas limit: {gas_limit}")
-
-                # **If ENABLE_AUTOMATIC_FEES is True, DO NOT specify any fees**
+                # Handle gas and fee settings based on ENABLE_AUTOMATIC_FEES
                 if config['ENABLE_AUTOMATIC_FEES']:
-                    # No need to specify gas fees; Ethereum node will handle it automatically
-                    logging.info(f"Automatic fees are enabled, not specifying maxFeePerGas or maxPriorityFeePerGas.")
+                    # Automatic mode: Do not manually set gas limit or fees
+                    logging.info("Automatic fees and gas limits are enabled. Letting the Ethereum node handle everything.")
                 else:
+                    # Estimate gas limit manually
+                    gas_limit = web3.eth.estimate_gas(txn)
+                    txn['gas'] = gas_limit
+                    logging.info(f"Estimated gas limit: {gas_limit}")
+
                     # Manual fee setting based on multipliers
                     base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
                     priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
@@ -216,6 +214,8 @@ def buy_token(token_address, amount_eth, trans_hash):
             except Exception as e:
                 retry_count += 1
                 logging.error(f"Buy transaction failed on attempt {retry_count}. Error: {e}")
+                logging.debug(f"Detailed transaction object: {txn}")
+                logging.debug(f"Transaction data: {signed_txn.rawTransaction.hex()}")
 
                 # Wait before retrying based on retry_count
                 if retry_count < max_retries:

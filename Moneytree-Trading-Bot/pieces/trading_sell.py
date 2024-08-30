@@ -75,12 +75,12 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
 def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use_moonbag=False):
-    max_retries = 3  # Maximum number of retries
+    max_retries = 20  # Maximum number of retries
     gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
     retry_count = 0  # Track the number of retries
 
-    # Retry delays: 1 second before 1st retry, 8 seconds before 2nd, 15 seconds before 3rd
-    retry_delays = [3, 10, 18]
+    # Retry delays: 3 seconds before 1st retry, 10 seconds before 2nd, 18 seconds before 3rd
+    retry_delays = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 8, 10]
 
     try:
         logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
@@ -123,19 +123,18 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
             })
 
-            # Estimate gas limit for approval
-            approve_gas_limit = web3.eth.estimate_gas(approve_txn)
-            approve_txn['gas'] = approve_gas_limit
-            logging.info(f"Estimated gas limit for approval: {approve_gas_limit}")
-
-            # **If ENABLE_AUTOMATIC_FEES is True, DO NOT specify any fees**
+            # Handle gas limit and fees for approval transaction
             if config['ENABLE_AUTOMATIC_FEES']:
-                logging.info(f"Automatic fees are enabled, not specifying maxFeePerGas or maxPriorityFeePerGas.")
+                logging.info(f"Automatic fees are enabled, not specifying gas limits or fees.")
             else:
+                # Estimate gas limit for approval
+                approve_gas_limit = web3.eth.estimate_gas(approve_txn)
+                approve_txn['gas'] = approve_gas_limit
+                logging.info(f"Estimated gas limit for approval: {approve_gas_limit}")
+
                 # Manual fee setting based on multipliers
                 base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
                 priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
-
                 total_fee = int((base_fee + priority_fee) * TOTAL_FEE_MULTIPLIER)
 
                 approve_txn['maxFeePerGas'] = total_fee
@@ -187,19 +186,18 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 })
                 logging.info("Sell transaction built successfully.")
 
-                # Estimate gas limit
-                gas_limit = web3.eth.estimate_gas(txn)
-                txn['gas'] = gas_limit
-                logging.info(f"Estimated gas limit: {gas_limit}")
-
-                # **If ENABLE_AUTOMATIC_FEES is True, DO NOT specify any fees**
+                # Handle gas limit and fees for sell transaction
                 if config['ENABLE_AUTOMATIC_FEES']:
-                    logging.info(f"Automatic fees are enabled, not specifying maxFeePerGas or maxPriorityFeePerGas.")
+                    logging.info(f"Automatic fees are enabled, not specifying gas limits or fees.")
                 else:
+                    # Estimate gas limit
+                    gas_limit = web3.eth.estimate_gas(txn)
+                    txn['gas'] = gas_limit
+                    logging.info(f"Estimated gas limit: {gas_limit}")
+
                     # Manual fee setting based on multipliers
                     base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
                     priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
-
                     total_fee = int((base_fee + priority_fee) * TOTAL_FEE_MULTIPLIER)
 
                     txn['maxFeePerGas'] = total_fee
@@ -245,14 +243,18 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                                 'nonce': web3.eth.get_transaction_count(WALLET_ADDRESS),
                             })
 
-                            # Estimate gas limit for fallback transaction
-                            gas_limit = web3.eth.estimate_gas(txn)
-                            txn['gas'] = gas_limit
-                            logging.info(f"Fallback transaction estimated gas limit: {gas_limit}")
+                            # Handle gas limit and fees for fallback transaction
+                            if config['ENABLE_AUTOMATIC_FEES']:
+                                logging.info(f"Automatic fees are enabled, not specifying gas limits or fees.")
+                            else:
+                                # Estimate gas limit for fallback transaction
+                                gas_limit = web3.eth.estimate_gas(txn)
+                                txn['gas'] = gas_limit
+                                logging.info(f"Fallback transaction estimated gas limit: {gas_limit}")
 
-                            # Set EIP-1559 fields for fallback transaction
-                            txn['maxFeePerGas'] = total_fee
-                            txn['maxPriorityFeePerGas'] = priority_fee
+                                # Set EIP-1559 fields for fallback transaction
+                                txn['maxFeePerGas'] = total_fee
+                                txn['maxPriorityFeePerGas'] = priority_fee
 
                             # Sign and send the fallback transaction
                             signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
