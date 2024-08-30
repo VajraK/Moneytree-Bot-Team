@@ -8,6 +8,7 @@ import yaml
 from web3 import Web3
 from asgiref.wsgi import WsgiToAsgi
 from datetime import datetime, timezone
+from multiprocessing import Process
 from pieces.filters import filter_message, extract_token_address, get_token_details
 from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price
 from pieces.text_utils import insert_zero_width_space
@@ -41,7 +42,7 @@ file_handler.suffix = "%Y%m%d"  # Suffix to add the date to the archived logs (e
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
-logger.info("*** Started! Moneytree Trading Bot (MTdB) is now running.")
+logger.info("*** Started! Moneytree Trading Bot (MTdB) is now running. ***")
 
 # Construct the config file path in the parent directory
 config_file_path = os.path.join(parent_directory, 'config.yaml')
@@ -233,25 +234,35 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
 
     logging.info(f"Monitoring {monitoring_id} — Monitoring ended due to sell conditions.")
 
-@app.route('/transaction', methods=['POST'])
-async def transaction():
-    data = request.json
-    logging.info('—————————————————————————————————————————————————————————————————————————————————————————————————————————')
-    logging.info(f"Received transaction data: {data}")
+def handle_transaction(data):
+    # Reconfigure logging in the child process to include the PID
+    logger = logging.getLogger()  # Get the root logger
+    for handler in logger.handlers[:]:  # Remove all old handlers
+        logger.removeHandler(handler)
+    
+    # Reconfigure the logging to include the PID
+    file_handler = TimedRotatingFileHandler(log_path, when='midnight', interval=1, backupCount=30, encoding='utf-8')
+    file_handler.suffix = "%Y%m%d"
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(process)d - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
 
-    # Initialize initial_eth_balance to None
+    logger.info(f"Starting a new process to handle the transaction. PID: {os.getpid()}")
+    
+    # The logic from your transaction handler
     initial_eth_balance = None
 
     if filter_message(data, ADDRESS_MAP.values()):
-        logging.info("Yes, it passes the filters")
+        logger.info("Yes, it passes the filters")
         action_text_cleaned = data.get('action_text').replace('\\', '')
         token_address = extract_token_address(action_text_cleaned)
         if token_address:
-            logging.info(f"Extracted token address: {token_address}")
+            logger.info(f"Extracted token address: {token_address}")
 
             name, symbol, decimals = get_token_details(web3, token_address, uniswap_v2_erc20_abi)
-            logging.info(f"Token name: {name}")
-            logging.info(f"Token symbol: {symbol}")
+            logger.info(f"Token name: {name}")
+            logger.info(f"Token symbol: {symbol}")
 
             # Statistics
             log_transaction({
@@ -273,7 +284,7 @@ async def transaction():
                 # Check market cap
                 market_cap_usd = calculate_market_cap(token_address)
                 if market_cap_usd is None:
-                    logging.info("Market cap not available. Skipping the buy.")
+                    logger.info("Market cap not available. Skipping the buy.")
                     log_transaction({
                         "post_hash": data.get("tx_hash"),
                         "buy": "NO",
@@ -281,31 +292,28 @@ async def transaction():
                         "fail": "Market cap not available.",
                         "profit_loss": ""
                     })
-                    return jsonify({'status': 'failed', 'reason': 'Market cap not available'}), 400
+                    return
                 
                 if market_cap_usd < MIN_MARKET_CAP or market_cap_usd > MAX_MARKET_CAP:
-                    logging.info(f"Market cap {market_cap_usd} USD not within the specified range. Skipping the buy.")
-                    # Statistics
+                    logger.info(f"Market cap {market_cap_usd} USD not within the specified range. Skipping the buy.")
                     log_transaction({
-                            "post_hash": data.get("tx_hash"),
-                            "buy": "NO",
-                            "sell": "NO",
-                            "fail": "Market cap not within the specified range.",
-                            "profit_loss": ""
-                        })
-                    return jsonify({'status': 'failed', 'reason': f'Market cap {market_cap_usd} USD not within the specified range'}), 200
-
-            
+                        "post_hash": data.get("tx_hash"),
+                        "buy": "NO",
+                        "sell": "NO",
+                        "fail": "Market cap not within the specified range.",
+                        "profit_loss": ""
+                    })
+                    return
 
             initial_price, pair_address = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, decimals, uniswap_v2_pair_abi)
             if initial_price is None:
                 initial_price, pair_address = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, decimals, uniswap_v3_pool_abi)
             
             if initial_price is not None:
-                logging.info(f"Pair/Pool address: {pair_address}")
-                logging.info(f"Token price: {initial_price} ETH")
+                logger.info(f"Pair/Pool address: {pair_address}")
+                logger.info(f"Token price: {initial_price} ETH")
                 token_amount = calculate_token_amount(AMOUNT_OF_ETH, initial_price)
-                logging.info(f"Approximately {token_amount} {symbol} would be purchased for {AMOUNT_OF_ETH} ETH.")
+                logger.info(f"Approximately {token_amount} {symbol} would be purchased for {AMOUNT_OF_ETH} ETH.")
 
                 # Send Telegram message for buy
                 from_name = data.get('from_name')
@@ -331,20 +339,20 @@ async def transaction():
                     token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash)
 
                     if token_amount is None:
-                        logging.error(f"No token amount for token {token_address}.")
-                        return jsonify({'status': 'failed', 'reason': 'Failed to fetch token amount'}), 400
+                        logger.error(f"No token amount for token {token_address}.")
+                        return
 
                     # Fetch token decimals
                     token_decimals = get_token_decimals(token_address)
                     if token_decimals is None:
-                        logging.error(f"Failed to fetch decimals for token {token_address}.")
+                        logger.error(f"Failed to fetch decimals for token {token_address}.")
                         log_transaction({
                             "post_hash": tx_hash,
                             "sell": "NO",
                             "fail": "Failed to fetch token decimals.",
                             "profit_loss": ""
                         })
-                        return jsonify({'status': 'failed', 'reason': 'Failed to fetch token decimals'}), 400
+                        return
                     else:
                         token_amount = token_amount / (10 ** token_decimals)
                         initial_price = initial_price / (10 ** token_decimals)
@@ -353,15 +361,14 @@ async def transaction():
                     if buy_tx_hash is None or token_amount is None:
                         # Log the reason for skipping further actions
                         if initial_eth_balance is not None and initial_eth_balance < web3.to_wei(AMOUNT_OF_ETH, 'ether'):
-                            logging.warning(f"Insufficient ETH balance for the transaction. Current balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH. Skipping the buy.")
+                            logger.warning(f"Insufficient ETH balance for the transaction. Current balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH. Skipping the buy.")
                         else:
-                            logging.warning(f"Buy transaction was skipped or failed for another reason.")
+                            logger.warning(f"Buy transaction was skipped or failed for another reason.")
                         
-                        # Return a JSON response indicating the buy was skipped
-                        return jsonify({'status': 'success', 'reason': 'Buy was skipped due to insufficient balance or other error'}), 200
+                        return
                     
                     # If the buy was successful, log the details
-                    logging.info(f"Buy transaction completed successfully. Transaction hash: {buy_tx_hash}, token amount: {token_amount}, "
+                    logger.info(f"Buy transaction completed successfully. Transaction hash: {buy_tx_hash}, token amount: {token_amount}, "
                                 f"initial ETH balance: {initial_eth_balance}, initial price: {initial_price}.")
 
                     messageB += f'*Buy Transaction Hash:*\n[{buy_tx_hash}](https://etherscan.io/tx/{buy_tx_hash})\n\n'  # Add the buy transaction hash
@@ -385,16 +392,27 @@ async def transaction():
                 }
 
                 if ALLOW_MULTIPLE_TRANSACTIONS:
-                    asyncio.create_task(monitor_price(token_address, initial_price, decimals, transaction_details))
+                    asyncio.run(monitor_price(token_address, initial_price, decimals, transaction_details))
                 else:
-                    await monitor_price(token_address, initial_price, decimals, transaction_details)
+                    asyncio.run(monitor_price(token_address, initial_price, decimals, transaction_details))
             else:
-                logging.info("Token price not available on either Uniswap V2 or V3.")
+                logger.info("Token price not available on either Uniswap V2 or V3.")
         else:
-            logging.info("Token address not found in the action text.")
+            logger.info("Token address not found in the action text.")
     else:
-        logging.info("No, it does not pass the filters")
-    return jsonify({'status': 'success'}), 200
+        logger.info("No, it does not pass the filters")
+
+@app.route('/transaction', methods=['POST'])
+def transaction():
+    data = request.json
+    logger.info('—————————————————————————————————————————————————————————————————————————————————————————————————————————')
+    logger.info(f"Received transaction data: {data}")
+
+    # Start a new process to handle the transaction
+    p = Process(target=handle_transaction, args=(data,))
+    p.start()
+    
+    return jsonify({'status': 'processing'}), 200
 
 def run_server():
     app.run(host='0.0.0.0', port=5000)

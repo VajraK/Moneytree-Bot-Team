@@ -4,7 +4,7 @@ import time
 import logging
 import yaml
 
-def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=15):
+def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=25):
     # Get the absolute path of the parent directory
     parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 

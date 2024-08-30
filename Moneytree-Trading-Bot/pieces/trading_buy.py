@@ -83,7 +83,7 @@ def buy_token(token_address, amount_eth, trans_hash):
     retry_count = 0  # Track the number of retries
 
     # Retry delays: 3 seconds before 1st retry, 10 seconds before 2nd, 18 seconds before 3rd
-    retry_delays = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 8, 10]
+    retry_delays = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
     try:
         logging.info(f"Starting buy process for token: {token_address} with {amount_eth} ETH")

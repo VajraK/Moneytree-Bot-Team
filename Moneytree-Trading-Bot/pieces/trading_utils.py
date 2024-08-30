@@ -67,7 +67,7 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 # Constants
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
-def retry_scam_check(token_address, retries=3, delay_seconds=10):
+def retry_scam_check(token_address, retries=30, delay_seconds=10):
     for attempt in range(retries):
         # Get both the scam detection status and the scam reason from scrape_dexanalyzer
         scam_detected, scam_reason = scrape_dexanalyzer(token_address)
