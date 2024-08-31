@@ -355,7 +355,7 @@ def handle_transaction(data):
                         return
                     else:
                         token_amount = token_amount / (10 ** token_decimals)
-                        initial_price = initial_price
+                        initial_price = initial_price / (10 ** token_decimals)
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
