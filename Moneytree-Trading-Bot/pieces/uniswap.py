@@ -33,6 +33,7 @@ def get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, weth_address, 
 
         # Calculate price
         token_price = adjusted_reserve_weth / adjusted_reserve_token
+        token_price = token_price / (10 ** token_decimals)
         return token_price, pair_address
 
     except Exception as e:
@@ -57,6 +58,7 @@ def get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, weth_address, 
 
                 # Calculate token price
                 token_price = (sqrtPriceX96 ** 2 / (2 ** 192)) * (10 ** token_decimals) / (10 ** 18)
+                token_price = token_price / (10 ** token_decimals)
                 return token_price, pool_address
             else:
                 logging.warning(f"Uniswap V3 pool not found for token {token_address}, WETH, and fee tier {fee}.")
