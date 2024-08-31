@@ -229,6 +229,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                     while fallback_retries < max_retries:
                         try:
                             # Adjust gas fees for fallback retry
+                            base_fee = int(web3.eth.get_block('latest')['baseFeePerGas'] * BASE_FEE_MULTIPLIER)
+                            priority_fee = int(web3.eth.max_priority_fee * PRIORITY_FEE_MULTIPLIER)
                             total_fee = int((base_fee + priority_fee) * (TOTAL_FEE_MULTIPLIER * (gas_multiplier_increment ** fallback_retries)))
 
                             # Fallback to swapExactTokensForETHSupportingFeeOnTransferTokens
