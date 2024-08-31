@@ -312,6 +312,7 @@ def handle_transaction(data):
                 initial_price, pair_address = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, decimals, uniswap_v3_pool_abi)
             
             if initial_price is not None:
+                initial_price = initial_price * (10 ** decimals)
                 logger.info(f"Pair/Pool address: {pair_address}")
                 logger.info(f"Token price: {initial_price} ETH")
                 token_amount = calculate_token_amount(AMOUNT_OF_ETH, initial_price)
