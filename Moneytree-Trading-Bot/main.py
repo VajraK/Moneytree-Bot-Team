@@ -154,11 +154,13 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
             
             if v2_price is not None and v2_price > 0:
                 current_price = v2_price
+                current_price = current_price * (10 ** token_decimals)
             else:
                 # Fallback to Uniswap V3 if V2 fails
                 v3_price, _ = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v3_pool_abi)
                 if v3_price is not None and v3_price > 0:
                     current_price = v3_price
+                    current_price = current_price * (10 ** token_decimals)
 
             # Skip this iteration if no valid price is fetched
             if current_price is None:
