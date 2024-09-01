@@ -146,7 +146,7 @@ def check_eth_balance():
         logging.error(f"Error checking ETH balance: {e}")
         return None
 
-def wait_for_balance_change(initial_balance_func, token_address=None, expected_increase=True, max_attempts=30, delay_seconds=2):
+def wait_for_balance_change(initial_balance_func, token_address=None, expected_increase=True, max_attempts=90, delay_seconds=2):
     initial_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
     for attempt in range(max_attempts):
         current_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
@@ -165,7 +165,7 @@ def wait_for_balance_change(initial_balance_func, token_address=None, expected_i
     logging.error("No balance change detected after multiple attempts.")
     return None
 
-def wait_for_approval(token_contract, token_address, amount_in_smallest_unit, max_attempts=30, delay_seconds=2):
+def wait_for_approval(token_contract, token_address, amount_in_smallest_unit, max_attempts=90, delay_seconds=2):
     for attempt in range(max_attempts):
         allowance = token_contract.functions.allowance(WALLET_ADDRESS, UNISWAP_V2_ROUTER_ADDRESS).call()
         logging.info(f"Attempt {attempt + 1}: Current allowance = {allowance} tokens")
