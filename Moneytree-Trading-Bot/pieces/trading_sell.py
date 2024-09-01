@@ -75,12 +75,12 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
 def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use_moonbag=False):
-    max_retries = 25  # Maximum number of retries
+    max_retries = 30  # Maximum number of retries
     gas_multiplier_increment = 1.2  # Increment to apply to gas prices for retries
     retry_count = 0  # Track the number of retries
 
     # Retry delays
-    retry_delays = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+    retry_delays = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
     try:
         logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
