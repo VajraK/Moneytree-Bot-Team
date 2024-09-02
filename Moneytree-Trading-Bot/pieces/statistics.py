@@ -75,6 +75,17 @@ def is_rotation_needed():
         logging.info("Log file does not exist, no rotation needed")
     return False
 
+# Function to load logs from a file path
+def load_logs(file_path):
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, 'r') as file:
+                return json.load(file)
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to decode JSON from {file_path}: {e}")
+            return []
+    return []
+
 # Function to log or update transaction details to a JSON file
 def log_transaction(data):
     logging.info("Starting transaction logging process...")
@@ -82,26 +93,29 @@ def log_transaction(data):
     # Rotate logs if needed
     if is_rotation_needed():
         rotate_logs()
+
+    # Load the current log
+    logs = load_logs(log_file_path)
     
-    # Load existing logs if the file exists
-    if os.path.exists(log_file_path):
-        try:
-            with open(log_file_path, 'r') as file:
-                logs = json.load(file)
-                logging.info(f"Loaded existing log file with {len(logs)} entries")
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to decode JSON from {log_file_path}: {e}")
-            logs = []
-    else:
-        logs = []
-        logging.info("No existing log file found, creating new one")
+    # Load the previous day's log
+    previous_day = datetime.now(local_tz) - timedelta(days=1)
+    previous_log_file = os.path.join(log_directory, f'transaction_logs_{previous_day.strftime("%Y%m%d")}.json')
+    previous_logs = load_logs(previous_log_file)
+
+    # Load the log from two days ago
+    before_previous_day = datetime.now(local_tz) - timedelta(days=2)
+    before_previous_log_file = os.path.join(log_directory, f'transaction_logs_{before_previous_day.strftime("%Y%m%d")}.json')
+    before_previous_logs = load_logs(before_previous_log_file)
+
+    # Combine logs in the order of current, previous, and before previous
+    combined_logs = logs + previous_logs + before_previous_logs
 
     # Search for an existing entry with the same post_hash (tx_hash)
     existing_entry = None
     post_hash = data.get("post_hash")
-    
+
     if post_hash:
-        for log in logs:
+        for log in combined_logs:
             if log.get("post_hash") == post_hash:
                 existing_entry = log
                 break
@@ -121,6 +135,14 @@ def log_transaction(data):
             "fail": data.get("fail", existing_entry["fail"]),
             "profit_loss": data.get("profit_loss", existing_entry["profit_loss"])
         })
+
+        # If the entry was in the previous or before previous logs, move it to the current log
+        if existing_entry in previous_logs:
+            previous_logs.remove(existing_entry)
+            logs.append(existing_entry)
+        elif existing_entry in before_previous_logs:
+            before_previous_logs.remove(existing_entry)
+            logs.append(existing_entry)
     else:
         # Append new log entry
         log_entry = {
@@ -140,10 +162,22 @@ def log_transaction(data):
         logs.append(log_entry)
         logging.info(f"Created new log entry for post_hash: {post_hash}")
 
-    # Write the updated log back to the file
+    # Write the updated current log back to the file
     try:
         with open(log_file_path, 'w') as file:
             json.dump(logs, file, indent=4)
         logging.info(f"Logged transaction: {data}")
+        
+        # Optionally, update the previous and before previous day's logs if any entries were removed from them
+        if previous_logs:
+            with open(previous_log_file, 'w') as file:
+                json.dump(previous_logs, file, indent=4)
+            logging.info(f"Updated previous day's log: {previous_log_file}")
+        
+        if before_previous_logs:
+            with open(before_previous_log_file, 'w') as file:
+                json.dump(before_previous_logs, file, indent=4)
+            logging.info(f"Updated before previous day's log: {before_previous_log_file}")
+
     except Exception as e:
         logging.error(f"Failed to write to log file: {e}")
