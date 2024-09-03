@@ -250,6 +250,8 @@ def handle_transaction(data):
     logger.addHandler(file_handler)
     logger.setLevel(logging.INFO)
 
+    # Get the PID for this process
+    pid = os.getpid()
     logger.info(f"Starting a new process to handle the transaction. PID: {os.getpid()}")
     
     # The logic from your transaction handler
@@ -269,7 +271,7 @@ def handle_transaction(data):
             # Statistics
             log_transaction({
                 "time": datetime.now(timezone.utc).isoformat(),  # Current UTC time
-                "post_hash": data.get("tx_hash"),  # Using 'tx_hash' for post hash
+                "post_hash": str(pid),
                 "wallet_name": data.get("from_name"),  # Using 'from_name' for wallet name
                 "token_symbol": symbol,  # Token symbol
                 "token_hash": token_address,
