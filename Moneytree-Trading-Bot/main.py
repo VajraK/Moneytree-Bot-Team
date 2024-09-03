@@ -271,7 +271,8 @@ def handle_transaction(data):
             # Statistics
             log_transaction({
                 "time": datetime.now(timezone.utc).isoformat(),  # Current UTC time
-                "post_hash": str(pid),
+                "post_hash": data.get("tx_hash"),  # Using 'tx_hash' for post hash
+                "pid": str(pid),
                 "wallet_name": data.get("from_name"),  # Using 'from_name' for wallet name
                 "token_symbol": symbol,  # Token symbol
                 "token_hash": token_address,

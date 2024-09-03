@@ -107,8 +107,8 @@ def clean_html(raw_html):
     """
     Removes HTML tags and extra spaces from a raw HTML string.
     """
-    clean_text = re.sub('<.*?>', ' ', raw_html)
-    clean_text = re.sub('\s+', ' ', clean_text).strip()
+    clean_text = re.sub(r'<.*?>', ' ', raw_html)
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
     clean_text = clean_text.replace('(', '〈').replace(')', '〉')
     
     # Remove unwanted strings

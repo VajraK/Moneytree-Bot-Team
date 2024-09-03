@@ -127,6 +127,7 @@ def log_transaction(data):
             "wallet_name": data.get("wallet_name", existing_entry["wallet_name"]),
             "token_symbol": data.get("token_symbol", existing_entry["token_symbol"]),
             "token_hash": data.get("token_hash", existing_entry["token_hash"]),
+            "pid": data.get("pid", existing_entry["pid"]),
             "amount_of_eth": data.get("amount_of_eth", existing_entry["amount_of_eth"]),
             "buy": data.get("buy", existing_entry["buy"]),
             "buy_tx": data.get("buy_tx", existing_entry["buy_tx"]),
@@ -151,6 +152,7 @@ def log_transaction(data):
             "wallet_name": data.get("wallet_name", "N/A"),  # Wallet name
             "token_symbol": data.get("token_symbol", "N/A"),  # Token symbol
             "token_hash": data.get("token_hash", "N/A"),
+            "pid": data.get("pid", "N/A"),
             "amount_of_eth": data.get("amount_of_eth", "N/A"),  # Amount of ETH
             "buy": data.get("buy", ""),  # Transaction status
             "buy_tx": data.get("buy_tx", ""), 

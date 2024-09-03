@@ -257,7 +257,8 @@ function updateTransactionTable(transactions) {
         // Add clickable elements for post_hash, buy_tx, and sell_tx
         row.innerHTML = `
             <td>${new Date(transaction.time).toLocaleString()}</td> <!-- Time column -->
-            <td class="short-hash" onclick="copyToClipboard('${transaction.post_hash}')">${formatPostHash(transaction.post_hash)}</td> <!-- Post hash copies -->
+            <td class="short-hash" onclick="copyToClipboard('${transaction.post_hash}')">${formatPostHash(transaction.post_hash)}</td>
+            <td class="short-hash" onclick="copyToClipboard('${transaction.pid}')">${(transaction.pid)}</td>
             <td>${transaction.wallet_name}</td>
             <td class="token-symbol" onclick="copyToClipboard('${transaction.token_hash}')">${transaction.token_symbol}</td> <!-- Token symbol copies token_hash -->
             <td>${transaction.amount_of_eth}</td>
