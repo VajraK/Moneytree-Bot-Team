@@ -4,7 +4,7 @@ import time
 import logging
 import yaml
 
-def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=25):
+def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=30):
     # Get the absolute path of the parent directory
     parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -61,14 +61,15 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=25):
             return False, "Script error"  # Return error for subprocess failure
     
     logging.error("Maximum attempts reached. The page might still be loading.")
-    return False, "Page loading timeout"  # Return timeout error if loading persists after max attempts
+    reason = "Scam detected: No info"
+    return True, reason  # Scam detected
 
 def check_for_scam(content, enable_high_most_likely_scam_check, enable_renounced_check, enable_liquidity_check):
     # 1. MUST NOT CONTAIN 'HIGH</b></td><td>MOST LIKELY SCAM'
     if enable_high_most_likely_scam_check:
         scam_expression = 'HIGH</b></td><td>MOST LIKELY SCAM'
         if scam_expression in content:
-            reason = "Scam detected: HIGH Priority'"
+            reason = "Scam detected: HIGH Priority"
             return True, reason  # Scam detected
     
     # 2. MUST CONTAIN '***RENOUNCED***'
