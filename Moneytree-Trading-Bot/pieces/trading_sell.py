@@ -81,6 +81,9 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
     # Retry delays
     retry_delays = [5] * max_retries
 
+    # Flag to check if it's the first attempt
+    first_attempt = True
+
     while retry_count < max_retries:
         try:
             logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
@@ -158,9 +161,11 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                     })
                     return None, None
 
-            # **Add a delay before proceeding to sell**
-            logging.info("Waiting 5 seconds after approval...")
-            time.sleep(5)
+            # Add a delay only if it's the first attempt
+            if first_attempt:
+                logging.info("Waiting 5 seconds after approval...")
+                time.sleep(5)
+                first_attempt = False
 
             # Check initial ETH balance before the sell
             pre_sell_eth_balance = check_eth_balance()
