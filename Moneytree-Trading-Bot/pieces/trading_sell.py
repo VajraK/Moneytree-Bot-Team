@@ -300,10 +300,11 @@ def sell_token(token_address, token_amount, trans_hash, use_moonbag=False):
     # Calculate profit/loss by comparing final ETH balance after sell with initial ETH balance before buy
     try:
         # Ensure balances are in the same unit for calculation
-        received_eth_in_ether = web3.from_wei(received_eth, 'ether')
+        received_eth_in_ether = float(web3.from_wei(received_eth, 'ether'))  
+        bought_for_in_ether = float(AMOUNT_OF_ETH)
 
         # Calculate profit or loss
-        profit_loss = received_eth_in_ether - AMOUNT_OF_ETH
+        profit_loss = received_eth_in_ether - bought_for_in_ether
         logging.info(f"Total Profit/Loss: {profit_loss:.18f} ETH")
     except Exception as e:
         logging.error(f"Failed to calculate profit/loss: {e}")
