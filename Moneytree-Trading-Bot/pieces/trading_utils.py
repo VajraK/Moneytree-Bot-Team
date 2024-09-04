@@ -87,16 +87,6 @@ def calculate_token_amount(eth_amount, token_price):
     logging.debug(f"Calculating token amount: ETH amount={eth_amount}, Token price={token_price}")
     return eth_amount / token_price
 
-def check_token_balance(token_address):
-    try:
-        token_address = Web3.to_checksum_address(token_address)
-        token_contract = web3.eth.contract(address=token_address, abi=uniswap_v2_erc20_abi)
-        balance = token_contract.functions.balanceOf(WALLET_ADDRESS).call()
-        return balance
-    except Exception as e:
-        logging.error(f"Error checking token balance: {e}")
-        return None
-
 def check_eth_balance():
     try:
         balance = web3.eth.get_balance(WALLET_ADDRESS)
@@ -104,36 +94,6 @@ def check_eth_balance():
     except Exception as e:
         logging.error(f"Error checking ETH balance: {e}")
         return None
-
-def wait_for_balance_change(initial_balance_func, token_address=None, expected_increase=True, max_attempts=90, delay_seconds=2):
-    initial_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
-    for attempt in range(max_attempts):
-        current_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
-        logging.info(f"Attempt {attempt + 1}: Current balance = {current_balance}; Initial banance = {initial_balance}")
-
-        if expected_increase:
-            if current_balance > initial_balance:
-                return current_balance
-        else:
-            if current_balance < initial_balance:
-                return current_balance
-
-        logging.info(f"No balance change detected, waiting {delay_seconds} seconds before retrying...")
-        time.sleep(delay_seconds)
-
-    logging.error("No balance change detected after multiple attempts.")
-    return None
-
-def wait_for_approval(token_contract, token_address, amount_in_smallest_unit, max_attempts=90, delay_seconds=2):
-    for attempt in range(max_attempts):
-        allowance = token_contract.functions.allowance(WALLET_ADDRESS, UNISWAP_V2_ROUTER_ADDRESS).call()
-        logging.info(f"Attempt {attempt + 1}: Current allowance = {allowance} tokens")
-        if allowance >= amount_in_smallest_unit:
-            return True
-        logging.info(f"Allowance not sufficient yet, waiting {delay_seconds} seconds before retrying...")
-        time.sleep(delay_seconds)
-    logging.error("Allowance did not update after multiple attempts.")
-    return False
 
 def send_transaction(signed_txn):
     tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)

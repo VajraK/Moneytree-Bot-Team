@@ -134,7 +134,6 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     tx_hash = transaction_details['tx_hash']
     symbol = transaction_details['symbol']
     token_amount = transaction_details['token_amount']
-    initial_eth_balance = transaction_details['initial_eth_balance']
     from_address = ADDRESS_MAP.get(from_name.lower())
 
     monitoring_id = tx_hash[:8]
@@ -197,7 +196,7 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     profit_or_loss = None
     try:
         if ENABLE_TRADING:
-            sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, initial_eth_balance, tx_hash, use_moonbag)  # Pass initial_eth_balance here
+            sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, tx_hash, use_moonbag)
     except Exception as e:
         logging.error(f"Error during sell: {e}")
         

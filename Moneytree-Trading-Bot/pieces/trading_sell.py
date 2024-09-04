@@ -6,12 +6,10 @@ import time
 from datetime import datetime, timedelta, timezone
 from web3 import Web3
 from pieces.trading_utils import (
-    check_eth_balance,
-    wait_for_approval,
-    wait_for_balance_change,
     send_transaction
 )
 from pieces.statistics import log_transaction
+from pieces.uniswap import get_approval_amount, get_swap_amount
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -36,6 +34,9 @@ web3 = Web3(Web3.HTTPProvider(ETEREUM_NODE_URL))
 # Wallet details
 WALLET_PRIVATE_KEY = config['WALLET_PRIVATE_KEY']
 WALLET_ADDRESS = web3.eth.account.from_key(WALLET_PRIVATE_KEY).address
+
+# Amount of ETH
+AMOUNT_OF_ETH = config['AMOUNT_OF_ETH']
 
 # Load priority fee
 BASE_FEE_MULTIPLIER = config['BASE_FEE_MULTIPLIER']
@@ -74,7 +75,7 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 # Constants
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
-def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use_moonbag=False):
+def sell_token(token_address, token_amount, trans_hash, use_moonbag=False):
     max_retries = 30  # Maximum number of retries
     retry_count = 0  # Track the number of retries
 
@@ -156,7 +157,8 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 logging.info(f"APPROVE TRANSACTION SENT WITH HASH: {approve_tx_hash.hex()}")
 
                 # Wait for the approval to be confirmed and check allowance again
-                if not wait_for_approval(token_contract, token_address, amount_in_smallest_unit):
+                approved_amount = get_approval_amount(approve_tx_hash)
+                if approved_amount is None or approved_amount < amount_in_smallest_unit:
                     logging.error("Token approval failed or took too long.")
                     log_transaction({
                         "post_hash": trans_hash,
@@ -283,15 +285,14 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 return None, None
 
     # Wait for the transaction to be mined and check final ETH balance
-    logging.info(f"Initial ETH Balance: {initial_eth_balance} ETH")
-    final_eth_balance = wait_for_balance_change(check_eth_balance, expected_increase=True)
-    logging.info(f"Final ETH Balance: {final_eth_balance} ETH")
-    if final_eth_balance is None:
-        logging.error("Failed to detect balance change after sell.")
+    received_eth = get_swap_amount(tx_hash)
+    logging.info(f"Final ETH Balance: {received_eth} ETH")
+    if received_eth is None:
+        logging.error("Failed to detect received ETH after sell.")
         log_transaction({
             "post_hash": trans_hash,
             "sell": "XXX",
-            "fail": "Could not detect change in ETH balance after sell.",
+            "fail": "Could not detect received ETH after sell.",
             "profit_loss": ""
         })
         return None, None
@@ -299,11 +300,10 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
     # Calculate profit/loss by comparing final ETH balance after sell with initial ETH balance before buy
     try:
         # Ensure balances are in the same unit for calculation
-        initial_eth_balance_in_ether = web3.from_wei(initial_eth_balance, 'ether')
-        final_eth_balance_in_ether = web3.from_wei(final_eth_balance, 'ether')
+        received_eth_in_ether = web3.from_wei(received_eth, 'ether')
 
         # Calculate profit or loss
-        profit_loss = final_eth_balance_in_ether - initial_eth_balance_in_ether
+        profit_loss = received_eth_in_ether - AMOUNT_OF_ETH
         logging.info(f"Total Profit/Loss: {profit_loss:.18f} ETH")
     except Exception as e:
         logging.error(f"Failed to calculate profit/loss: {e}")

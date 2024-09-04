@@ -3,6 +3,9 @@ from web3 import Web3
 import os
 import json
 import yaml
+from web3.exceptions import TransactionNotFound
+import time
+
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -128,3 +131,78 @@ def get_uniswap_v3_price(token_address, token_decimals):
     
     logging.warning(f"Uniswap V3 price not available for token {token_address} in any fee tier.")
     return None, None
+
+def get_swap_amount(tx_hash, max_retries=90, delay=2):
+    retries = 0
+    while retries < max_retries:
+        try:
+            # Attempt to get the transaction receipt
+            tx_receipt = web3.eth.get_transaction_receipt(tx_hash)
+            
+            # Log successful retrieval of the transaction receipt
+            logging.info(f"Transaction receipt found on try {retries + 1}.")
+            
+            # If successful, check for token swap events (Transfer method signature: 0xddf252ad)
+            token_swap = [log for log in tx_receipt.logs if log['topics'][0].hex() == Web3.keccak(text="Transfer(address,address,uint256)").hex()]
+            
+            if not token_swap or len(token_swap) < 2:
+                logging.warning(f"Not enough swap events found in transaction {tx_hash}.")
+                return "No sufficient swap events found in this transaction"
+            
+            # Log the fact that we found two or more swap events
+            logging.info(f"Swap events found: {len(token_swap)} transfers.")
+            
+            # Decode the second swap event (likely the token being swapped for)
+            second_swap = token_swap[1]
+            token_amount = int.from_bytes(second_swap['data'], byteorder='big')
+            
+            # Log the found token amount from the second swap event
+            logging.info(f"Swap amount found: {token_amount}")
+            
+            return token_amount  # Return the token amount of the second swap
+
+        except TransactionNotFound:
+            # Log retry attempt and wait before trying again
+            retries += 1
+            logging.warning(f"Transaction {tx_hash} not found on try {retries}. Retrying in {delay} seconds...")
+            time.sleep(delay)  # Wait for the specified delay before retrying
+
+    # After max_retries attempts, log and return None if transaction still not found
+    logging.error(f"Transaction {tx_hash} not found after {max_retries} attempts.")
+    return None
+
+def get_approval_amount(tx_hash, max_retries=90, delay=2):
+    retries = 0
+    while retries < max_retries:
+        try:
+            # Attempt to get the transaction receipt
+            tx_receipt = web3.eth.get_transaction_receipt(tx_hash)
+            
+            # Log successful retrieval of the transaction receipt
+            logging.info(f"Transaction receipt found on try {retries + 1} for tx: {tx_hash}")
+            
+            # Check for Approval event (Approval method signature: 0x8c5be1e5)
+            approval_logs = [log for log in tx_receipt.logs if log['topics'][0].hex() == Web3.keccak(text="Approval(address,address,uint256)").hex()]
+            
+            if not approval_logs:
+                logging.warning(f"No approval events found in transaction {tx_hash}.")
+                return "No approvals found in this transaction"
+            
+            # Decode approval event data
+            for approval in approval_logs:
+                approval_amount = int.from_bytes(approval['data'], byteorder='big')
+                
+                # Log the found approval amount
+                logging.info(f"Approval amount found: {approval_amount}")
+                
+                return approval_amount  # Return the approval amount if found
+
+        except TransactionNotFound:
+            # Log retry attempt and wait before trying again
+            retries += 1
+            logging.warning(f"Transaction {tx_hash} not found on try {retries}. Retrying in {delay} seconds...")
+            time.sleep(delay)  # Wait for the specified delay before retrying
+
+    # After max_retries attempts, log and return None if transaction still not found
+    logging.error(f"Transaction {tx_hash} not found after {max_retries} attempts.")
+    return None

@@ -8,13 +8,11 @@ from web3 import Web3
 from pieces.trading_utils import (
     retry_scam_check,
     check_eth_balance,
-    check_token_balance,
     calculate_token_amount,
-    wait_for_balance_change,
     send_transaction
 )
 from pieces.statistics import log_transaction
-from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price
+from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price, get_swap_amount
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -110,7 +108,6 @@ def buy_token(token_address, amount_eth, trans_hash, decimals):
             raise Exception("Failed to check initial ETH balance.")
         logging.info(f"Initial ETH balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH")
 
-
         # Check if the balance is sufficient
         required_balance = web3.to_wei(0.025 + amount_eth, 'ether')
         if initial_eth_balance < required_balance:
@@ -123,12 +120,6 @@ def buy_token(token_address, amount_eth, trans_hash, decimals):
                 "profit_loss": ""
             })
             return None, None, initial_eth_balance, None
-
-        # Check initial token balance
-        initial_token_balance = check_token_balance(token_address)
-        if initial_token_balance is None:
-            raise Exception("Failed to check initial token balance.")
-        logging.info(f"Initial token balance: {initial_token_balance}")
 
         # Determine transaction parameters
         deadline = int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())
@@ -204,13 +195,10 @@ def buy_token(token_address, amount_eth, trans_hash, decimals):
                 logging.info(f"TRANSACTION SENT WITH HASH: {tx_hash.hex()}")
 
                 # Wait for the transaction to be mined and check final token balance
-                final_token_balance = wait_for_balance_change(check_token_balance, token_address, expected_increase=True)
-                if final_token_balance is None:
+                tokens_received = get_swap_amount(tx_hash)
+                if tokens_received is None:
                     logging.error("Failed to detect balance change after buy.")
                     return None, tx_hash.hex(), initial_eth_balance
-
-                # Calculate the actual tokens received
-                tokens_received = final_token_balance - initial_token_balance
                 logging.info(f"Tokens received: {tokens_received}")
 
                 return tokens_received, tx_hash.hex(), initial_eth_balance, initial_price
