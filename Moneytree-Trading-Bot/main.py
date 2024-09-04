@@ -362,10 +362,6 @@ def handle_transaction(data):
                     else:
                         token_amount = token_amount / (10 ** token_decimals)
                         initial_price = initial_price / (10 ** token_decimals)
-
-                        # Convert token_amount to an integer
-                        token_amount = int(token_amount)
-                        logging.info(f"Token amount converted to integer: {token_amount}")
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
