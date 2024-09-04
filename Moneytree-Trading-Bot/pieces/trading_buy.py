@@ -195,7 +195,7 @@ def buy_token(token_address, amount_eth, trans_hash, decimals):
                 logging.info(f"TRANSACTION SENT WITH HASH: {tx_hash.hex()}")
 
                 # Wait for the transaction to be mined and check final token balance
-                tokens_received = get_swap_amount(tx_hash)
+                tokens_received = get_swap_amount(tx_hash, token_address)
                 if tokens_received is None:
                     logging.error("Failed to detect balance change after buy.")
                     return None, tx_hash.hex(), initial_eth_balance

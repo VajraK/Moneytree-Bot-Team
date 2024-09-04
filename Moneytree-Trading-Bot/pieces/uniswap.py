@@ -132,7 +132,7 @@ def get_uniswap_v3_price(token_address, token_decimals):
     logging.warning(f"Uniswap V3 price not available for token {token_address} in any fee tier.")
     return None, None
 
-def get_swap_amount(tx_hash, max_retries=90, delay=2):
+def get_swap_amount(tx_hash, token_contract_address, max_retries=90, delay=2):
     retries = 0
     while retries < max_retries:
         try:
@@ -143,23 +143,32 @@ def get_swap_amount(tx_hash, max_retries=90, delay=2):
             logging.info(f"Transaction receipt found on try {retries + 1}.")
             
             # If successful, check for token swap events (Transfer method signature: 0xddf252ad)
-            token_swap = [log for log in tx_receipt.logs if log['topics'][0].hex() == Web3.keccak(text="Transfer(address,address,uint256)").hex()]
+            token_transfers = [log for log in tx_receipt.logs if log['topics'][0].hex() == Web3.keccak(text="Transfer(address,address,uint256)").hex()]
             
-            if not token_swap or len(token_swap) < 2:
-                logging.warning(f"Not enough swap events found in transaction {tx_hash}.")
-                return "No sufficient swap events found in this transaction"
+            if not token_transfers:
+                    logging.warning(f"No token transfers found in transaction {tx_hash}.")
+                    return "No token transfers found in this transaction"
             
             # Log the fact that we found two or more swap events
-            logging.info(f"Swap events found: {len(token_swap)} transfers.")
+            logging.info(f"Token transfers found: {len(token_transfers)} transfers.")
+
+            total_token_amount = 0
             
-            # Decode the second swap event (likely the token being swapped for)
-            second_swap = token_swap[1]
-            token_amount = int.from_bytes(second_swap['data'], byteorder='big')
-            
-            # Log the found token amount from the second swap event
-            logging.info(f"Swap amount found: {token_amount}")
-            
-            return token_amount  # Return the token amount of the second swap
+            # Loop through all transfers and sum the amount for the specified token
+            for transfer in token_transfers:
+                contract_address = transfer['address']
+                    
+                if token_contract_address and web3.to_checksum_address(contract_address) != web3.to_checksum_address(token_contract_address):
+                    # Skip if the contract address doesn't match the specified token contract
+                    continue
+                    
+                token_amount = int.from_bytes(transfer['data'], byteorder='big')
+                total_token_amount += token_amount
+                
+            # Log the total token amount for the specified token
+            logging.info(f"Total token amount found for {token_contract_address}: {total_token_amount}")
+                
+            return total_token_amount  # Return the total token amount
 
         except TransactionNotFound:
             # Log retry attempt and wait before trying again

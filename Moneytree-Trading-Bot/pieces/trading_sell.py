@@ -285,7 +285,7 @@ def sell_token(token_address, token_amount, trans_hash, use_moonbag=False):
                 return None, None
 
     # Wait for the transaction to be mined and check final ETH balance
-    received_eth = get_swap_amount(tx_hash)
+    received_eth = get_swap_amount(tx_hash, WETH_ADDRESS)
     logging.info(f"Final ETH Balance: {received_eth} ETH")
     if received_eth is None:
         logging.error("Failed to detect received ETH after sell.")
