@@ -9,8 +9,8 @@ from web3 import Web3
 from asgiref.wsgi import WsgiToAsgi
 from datetime import datetime, timezone
 from multiprocessing import Process
-from pieces.filters import filter_message, extract_token_address, get_token_details
-from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price
+from pieces.filters import filter_message, extract_token_address
+from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price, get_token_details
 from pieces.text_utils import insert_zero_width_space
 from pieces.telegram_utils import send_telegram_message
 from pieces.market_cap import calculate_market_cap
@@ -149,18 +149,9 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     while True:
         try:
             current_price = None
-            # Try fetching from Uniswap V2 first
-            v2_price, _ = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v2_pair_abi)
-            
-            if v2_price is not None and v2_price > 0:
-                current_price = v2_price
-                current_price = current_price * (10 ** token_decimals)
-            else:
-                # Fallback to Uniswap V3 if V2 fails
-                v3_price, _ = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, token_decimals, uniswap_v3_pool_abi)
-                if v3_price is not None and v3_price > 0:
-                    current_price = v3_price
-                    current_price = current_price * (10 ** token_decimals)
+            current_price, pair_address = get_uniswap_v2_price(token_address, token_decimals)
+            if current_price is None:
+                current_price, pair_address = get_uniswap_v3_price(token_address, token_decimals)
 
             # Skip this iteration if no valid price is fetched
             if current_price is None:
@@ -206,10 +197,7 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
     profit_or_loss = None
     try:
         if ENABLE_TRADING:
-            token_decimals = get_token_decimals(token_address)
-            token_amount = token_amount * (10 ** token_decimals)
             sell_tx_hash, profit_or_loss = sell_token(token_address, token_amount, initial_eth_balance, tx_hash, use_moonbag)  # Pass initial_eth_balance here
-            logging.info(f"Monitoring {monitoring_id} — Sell transaction sent with hash: {sell_tx_hash}")
     except Exception as e:
         logging.error(f"Error during sell: {e}")
         
@@ -221,6 +209,8 @@ async def monitor_price(token_address, initial_price, token_decimals, transactio
         profit_or_loss_display = "Could not calculate"
     else:
         profit_or_loss_display = f"🏆 {profit_or_loss:.18f} ETH" if profit_or_loss > 0 else f"{profit_or_loss:.18f} ETH"
+        logging.info(f"* Sell transaction completed successfully. Transaction hash: {sell_tx_hash}, token amount: {token_amount}, "
+                                f"profit/loss: {profit_or_loss_display}.")
 
     messageS = (
         f'🟢 *SELL!* 🟢\n\n'
@@ -257,16 +247,13 @@ def handle_transaction(data):
     # The logic from your transaction handler
     initial_eth_balance = None
 
-    if filter_message(data, ADDRESS_MAP.values()):
-        logger.info("Yes, it passes the filters")
+    if filter_message(data):
         action_text_cleaned = data.get('action_text').replace('\\', '')
         token_address = extract_token_address(action_text_cleaned)
         if token_address:
             logger.info(f"Extracted token address: {token_address}")
 
-            name, symbol, decimals = get_token_details(web3, token_address, uniswap_v2_erc20_abi)
-            logger.info(f"Token name: {name}")
-            logger.info(f"Token symbol: {symbol}")
+            name, symbol, decimals, total_supply = get_token_details(token_address)
 
             # Statistics
             log_transaction({
@@ -287,7 +274,7 @@ def handle_transaction(data):
 
             if ENABLE_MARKET_CAP_FILTER:
                 # Check market cap
-                market_cap_usd = calculate_market_cap(token_address)
+                market_cap_usd = calculate_market_cap(token_address, name, symbol, total_supply, decimals)
                 if market_cap_usd is None:
                     logger.info("Market cap not available. Skipping the buy.")
                     log_transaction({
@@ -310,16 +297,15 @@ def handle_transaction(data):
                     })
                     return
 
-            initial_price, pair_address = get_uniswap_v2_price(web3, uniswap_v2_factory, token_address, WETH_ADDRESS, decimals, uniswap_v2_pair_abi)
+            initial_price, pair_address = get_uniswap_v2_price(token_address, decimals)
             if initial_price is None:
-                initial_price, pair_address = get_uniswap_v3_price(web3, uniswap_v3_factory, token_address, WETH_ADDRESS, decimals, uniswap_v3_pool_abi)
+                initial_price, pair_address = get_uniswap_v3_price(token_address, decimals)
             
             if initial_price is not None:
-                initial_price = initial_price * (10 ** decimals)
                 logger.info(f"Pair/Pool address: {pair_address}")
                 logger.info(f"Token price: {initial_price} ETH")
                 token_amount = calculate_token_amount(AMOUNT_OF_ETH, initial_price)
-                logger.info(f"Approximately {token_amount} {symbol} would be purchased for {AMOUNT_OF_ETH} ETH.")
+                logger.info(f"Approximately {token_amount} {symbol} will be purchased for {AMOUNT_OF_ETH} ETH.")
 
                 # Send Telegram message for buy
                 from_name = data.get('from_name')
@@ -342,7 +328,7 @@ def handle_transaction(data):
                 # If trading is enabled, execute the buy transaction
                 if ENABLE_TRADING:
                     # Capture token amount, transaction hash, initial ETH balance, and initial price from buy_token function
-                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash)
+                    token_amount, buy_tx_hash, initial_eth_balance, initial_price = buy_token(token_address, AMOUNT_OF_ETH, tx_hash, decimals)
 
                     if token_amount is None:
                         logger.error(f"No token amount for token {token_address}.")
@@ -360,8 +346,7 @@ def handle_transaction(data):
                         })
                         return
                     else:
-                        token_amount = token_amount / (10 ** token_decimals)
-                        initial_price = initial_price / (10 ** token_decimals)
+                        token_amount_readable = token_amount / (10 ** token_decimals)
                     
                     # Check if the buy transaction was successful
                     if buy_tx_hash is None or token_amount is None:
@@ -369,18 +354,18 @@ def handle_transaction(data):
                         if initial_eth_balance is not None and initial_eth_balance < web3.to_wei(AMOUNT_OF_ETH, 'ether'):
                             logger.warning(f"Insufficient ETH balance for the transaction. Current balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH. Skipping the buy.")
                         else:
-                            logger.warning(f"Buy transaction was skipped or failed for another reason.")
+                            logger.warning(f"Buy transaction was skipped or failed for some reason.")
                         
                         return
                     
                     # If the buy was successful, log the details
-                    logger.info(f"Buy transaction completed successfully. Transaction hash: {buy_tx_hash}, token amount: {token_amount}, "
+                    logger.info(f"* Buy transaction completed successfully. Transaction hash: {buy_tx_hash}, token amount: {token_amount_readable}, "
                                 f"initial ETH balance: {initial_eth_balance}, initial price: {initial_price}.")
 
                     messageB += f'*Buy Transaction Hash:*\n[{buy_tx_hash}](https://etherscan.io/tx/{buy_tx_hash})\n\n'  # Add the buy transaction hash
 
                 messageB += (
-                    f'*Action:*\nApproximately {token_amount} [{symbol}](https://etherscan.io/token/{token_address}) purchased for {AMOUNT_OF_ETH} ETH.\n'
+                    f'*Action:*\nApproximately {token_amount_readable} [{symbol}](https://etherscan.io/token/{token_address}) purchased for {AMOUNT_OF_ETH} ETH.\n'
                 )
 
                 send_telegram_message(insert_zero_width_space(messageB))

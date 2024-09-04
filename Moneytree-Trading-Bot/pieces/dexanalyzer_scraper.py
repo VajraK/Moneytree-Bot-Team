@@ -5,6 +5,7 @@ import logging
 import yaml
 
 def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=30):
+    logging.info(f"x Starting Anti-Scam.")
     # Get the absolute path of the parent directory
     parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -15,10 +16,10 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=30):
         with open(config_file_path, 'r') as file:
             config = yaml.safe_load(file)
     except FileNotFoundError:
-        logging.error(f"Configuration file '{config_file_path}' not found.")
+        logging.error(f"x Configuration file '{config_file_path}' not found.")
         exit()
     except yaml.YAMLError as exc:
-        logging.error(f"Error parsing YAML file: {exc}")
+        logging.error(f"x Error parsing YAML file: {exc}")
         exit()
 
     # Load scam check configuration
@@ -39,7 +40,7 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=30):
 
             # Check if the content contains the "Loading" message
             if "<h1>Loading" in content:
-                logging.info(f"[Anti-Scam] Attempt {attempt}: Page is still loading. Retrying...")
+                logging.info(f"x [Anti-Scam] Attempt {attempt}: Page is still loading. Retrying...")
                 time.sleep(2)  # Wait for 2 seconds before retrying
                 continue
 
@@ -48,19 +49,18 @@ def scrape_dexanalyzer(token_hash, save_html=True, max_attempts=30):
                 os.makedirs(logs_directory, exist_ok=True)
                 with open(file_path, 'w', encoding='utf-8') as file:
                     file.write(content)
-                logging.info(f"HTML content saved to {file_path}")
 
             # Perform the scam checks based on the configuration
             scam_result, reason = check_for_scam(content, ENABLE_HIGH_MOST_LIKELY_SCAM_CHECK, ENABLE_RENOUNCED_CHECK, ENABLE_LIQUIDITY_CHECK)
             if scam_result:
-                logging.warning(f"! {reason}")
+                logging.warning(f"x ! {reason}")
             return scam_result, reason
 
         except subprocess.CalledProcessError as e:
-            logging.error(f"An error occurred: {e}")
+            logging.error(f"x An error occurred: {e}")
             return False, "Script error"  # Return error for subprocess failure
     
-    logging.error("Maximum attempts reached. The page might still be loading.")
+    logging.error("x Maximum attempts reached. The page might still be loading.")
     reason = "Scam detected: No info"
     return True, reason  # Scam detected
 

@@ -73,65 +73,25 @@ def retry_scam_check(token_address, retries=30, delay_seconds=10):
         scam_detected, scam_reason = scrape_dexanalyzer(token_address)
         
         if scam_detected:
-            logging.warning(f"SCAM detected for token {token_address}. Reason: {scam_reason}. Retrying ({attempt + 1}/{retries}) in {delay_seconds} seconds.")
+            logging.warning(f"x SCAM detected for token {token_address}. Reason: {scam_reason}. Retrying ({attempt + 1}/{retries}) in {delay_seconds} seconds.")
             time.sleep(delay_seconds)
         else:
-            logging.info(f"No scam detected for token {token_address} on attempt {attempt + 1}. Proceeding with the buy.")
+            logging.info(f"x No scam detected for token {token_address} on attempt {attempt + 1}. Proceeding with the buy.")
             return False, ""  # No scam detected, return False and no reason
     
     # If scam detected after all retries, return True and the final reason
-    logging.warning(f"SCAM detected for token {token_address} after {retries} retries. Skipping the buy. Final reason: {scam_reason}")
+    logging.warning(f"x SCAM detected for token {token_address} after {retries} retries. Skipping the buy. Final reason: {scam_reason}")
     return True, scam_reason  # Scam detected after all retries
 
 def calculate_token_amount(eth_amount, token_price):
     logging.debug(f"Calculating token amount: ETH amount={eth_amount}, Token price={token_price}")
     return eth_amount / token_price
 
-def get_token_price(token_address):
-    logging.info(f"Fetching token price for address: {token_address}")
-    token_price = None
-    
-    # Try getting price from Uniswap V2
-    try:
-        pair_address = uniswap_v2_factory.functions.getPair(WETH_ADDRESS, token_address).call()
-        logging.debug(f"Uniswap V2 Pair address: {pair_address}")
-        if pair_address != '0x0000000000000000000000000000000000000000':
-            pair_contract = web3.eth.contract(address=pair_address, abi=uniswap_v2_pair_abi)
-            reserves = pair_contract.functions.getReserves().call()
-            if WETH_ADDRESS < token_address:
-                reserve_weth, reserve_token = reserves[0], reserves[1]
-            else:
-                reserve_token, reserve_weth = reserves[0], reserves[1]
-            token_price = reserve_weth / reserve_token
-            logging.info(f"Token price from Uniswap V2: {token_price} WETH")
-    except Exception as e:
-        logging.error(f"Error fetching token price from Uniswap V2: {e}")
-
-    # Try getting price from Uniswap V3 if not found in V2
-    if token_price is None:
-        try:
-            pool_address = uniswap_v3_factory.functions.getPool(WETH_ADDRESS, token_address, 3000).call()
-            logging.debug(f"Uniswap V3 Pool address: {pool_address}")
-            if pool_address != '0x0000000000000000000000000000000000000000':
-                pool_contract = web3.eth.contract(address=pool_address, abi=uniswap_v3_pool_abi)
-                slot0 = pool_contract.functions.slot0().call()
-                sqrt_price_x96 = slot0[0]
-                token_price = (sqrt_price_x96**2) / (2**192)
-                logging.info(f"Token price from Uniswap V3: {token_price} WETH")
-        except Exception as e:
-            logging.error(f"Error fetching token price from Uniswap V3: {e}")
-
-    if token_price is None:
-        logging.error(f"Failed to fetch token price for address: {token_address}")
-
-    return token_price
-
 def check_token_balance(token_address):
     try:
         token_address = Web3.to_checksum_address(token_address)
         token_contract = web3.eth.contract(address=token_address, abi=uniswap_v2_erc20_abi)
         balance = token_contract.functions.balanceOf(WALLET_ADDRESS).call()
-        logging.info(f"Token balance for address {token_address}: {balance} tokens")
         return balance
     except Exception as e:
         logging.error(f"Error checking token balance: {e}")
@@ -140,7 +100,6 @@ def check_token_balance(token_address):
 def check_eth_balance():
     try:
         balance = web3.eth.get_balance(WALLET_ADDRESS)
-        logging.info(f"ETH balance for wallet {WALLET_ADDRESS}: {web3.from_wei(balance, 'ether')} ETH")
         return balance
     except Exception as e:
         logging.error(f"Error checking ETH balance: {e}")
@@ -150,7 +109,7 @@ def wait_for_balance_change(initial_balance_func, token_address=None, expected_i
     initial_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
     for attempt in range(max_attempts):
         current_balance = initial_balance_func(token_address) if token_address else initial_balance_func()
-        logging.info(f"Attempt {attempt + 1}: Current balance = {current_balance}")
+        logging.info(f"Attempt {attempt + 1}: Current balance = {current_balance}; Initial banance = {initial_balance}")
 
         if expected_increase:
             if current_balance > initial_balance:

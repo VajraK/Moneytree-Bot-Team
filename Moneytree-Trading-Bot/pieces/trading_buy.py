@@ -9,12 +9,12 @@ from pieces.trading_utils import (
     retry_scam_check,
     check_eth_balance,
     check_token_balance,
-    get_token_price,
     calculate_token_amount,
     wait_for_balance_change,
     send_transaction
 )
 from pieces.statistics import log_transaction
+from pieces.uniswap import get_uniswap_v2_price, get_uniswap_v3_price
 
 # Get the absolute path of the parent directory
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -77,7 +77,7 @@ uniswap_v3_factory = web3.eth.contract(address=Web3.to_checksum_address('0x1F984
 # Constants
 WETH_ADDRESS = Web3.to_checksum_address('0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2')
 
-def buy_token(token_address, amount_eth, trans_hash):
+def buy_token(token_address, amount_eth, trans_hash, decimals):
     max_retries = 30  # Maximum number of retries
     retry_count = 0  # Track the number of retries
 
@@ -108,7 +108,8 @@ def buy_token(token_address, amount_eth, trans_hash):
         initial_eth_balance = check_eth_balance()
         if initial_eth_balance is None:
             raise Exception("Failed to check initial ETH balance.")
-        logging.info(f"Wallet ETH balance before transaction: {web3.from_wei(initial_eth_balance, 'ether')} ETH")
+        logging.info(f"Initial ETH balance: {web3.from_wei(initial_eth_balance, 'ether')} ETH")
+
 
         # Check if the balance is sufficient
         required_balance = web3.to_wei(0.025 + amount_eth, 'ether')
@@ -127,6 +128,7 @@ def buy_token(token_address, amount_eth, trans_hash):
         initial_token_balance = check_token_balance(token_address)
         if initial_token_balance is None:
             raise Exception("Failed to check initial token balance.")
+        logging.info(f"Initial token balance: {initial_token_balance}")
 
         # Determine transaction parameters
         deadline = int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())
@@ -135,9 +137,12 @@ def buy_token(token_address, amount_eth, trans_hash):
         while retry_count < max_retries:
             try:
                 # Get token price from Uniswap
-                initial_price = get_token_price(token_address)
+                initial_price, pair_address = get_uniswap_v2_price(token_address, decimals)
+                if initial_price is None:
+                    initial_price, pair_address = get_uniswap_v3_price(token_address, decimals)
                 if initial_price is None:
                     raise Exception("Token price not found on Uniswap V2 or V3.")
+                logging.info(f"Token price: {initial_price}")
 
                 # Calculate the estimated output amount
                 estimated_output_amount = calculate_token_amount(web3.to_wei(amount_eth, 'ether'), initial_price)
@@ -196,7 +201,7 @@ def buy_token(token_address, amount_eth, trans_hash):
                         "buy_tx": tx_hash.hex(),
                         "profit_loss": ""
                     })
-                logging.info(f"Transaction sent with hash: {tx_hash.hex()}")
+                logging.info(f"TRANSACTION SENT WITH HASH: {tx_hash.hex()}")
 
                 # Wait for the transaction to be mined and check final token balance
                 final_token_balance = wait_for_balance_change(check_token_balance, token_address, expected_increase=True)

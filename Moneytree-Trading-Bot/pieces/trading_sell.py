@@ -86,24 +86,29 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
 
     while retry_count < max_retries:
         try:
-            logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
+            if first_attempt:
+                logging.info(f"Starting sell process for token: {token_address} with amount: {token_amount}")
 
             # Ensure token_address is checksummed
-            token_address = Web3.to_checksum_address(token_address)
-            logging.debug(f"Checksummed token address: {token_address}")
+            if first_attempt:
+                token_address = Web3.to_checksum_address(token_address)
+                logging.debug(f"Checksummed token address: {token_address}")
 
             # Apply moonbag logic if use_moonbag is True and MOONBAG is defined
-            if use_moonbag:
-                MOONBAG = float(config['MOONBAG'])
-                token_amount = token_amount * (1 - MOONBAG)
-                logging.info(f"Applying moonbag logic. New token amount to sell: {token_amount}")
+            if first_attempt:
+                if use_moonbag:
+                    MOONBAG = float(config['MOONBAG'])
+                    token_amount = token_amount * (1 - MOONBAG)
+                    logging.info(f"Applying moonbag logic. New token amount to sell: {token_amount}")
 
             # Convert token amount to smallest unit
-            amount_in_smallest_unit = int(token_amount)  # Assuming token_amount is already in smallest unit format
-            logging.info(f"Token amount in smallest unit: {amount_in_smallest_unit}")
+            if first_attempt:
+                amount_in_smallest_unit = int(token_amount)  # Assuming token_amount is already in smallest unit format
+                logging.debug(f"Token amount in smallest unit: {amount_in_smallest_unit}")
 
             # Get the token contract
-            token_contract = web3.eth.contract(address=token_address, abi=uniswap_v2_erc20_abi)
+            if first_attempt:
+                token_contract = web3.eth.contract(address=token_address, abi=uniswap_v2_erc20_abi)
 
             # Check the token balance
             wallet_balance = token_contract.functions.balanceOf(WALLET_ADDRESS).call()
@@ -148,7 +153,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 # Sign and send the approval transaction
                 signed_approve_txn = web3.eth.account.sign_transaction(approve_txn, private_key=WALLET_PRIVATE_KEY)
                 approve_tx_hash = send_transaction(signed_approve_txn)
-                logging.info(f"Approve transaction sent with hash: {approve_tx_hash.hex()}")
+                logging.info(f"APPROVE TRANSACTION SENT WITH HASH: {approve_tx_hash.hex()}")
 
                 # Wait for the approval to be confirmed and check allowance again
                 if not wait_for_approval(token_contract, token_address, amount_in_smallest_unit):
@@ -166,11 +171,6 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 logging.info("Waiting 5 seconds after approval...")
                 time.sleep(5)
                 first_attempt = False
-
-            # Check initial ETH balance before the sell
-            pre_sell_eth_balance = check_eth_balance()
-            if pre_sell_eth_balance is None:
-                raise Exception("Failed to check initial ETH balance before sell.")
 
             # Define the transaction parameters
             deadline = int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())
@@ -212,7 +212,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
             # Sign and send the transaction
             signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
             tx_hash = send_transaction(signed_txn)
-            logging.info(f"Sell transaction sent with hash: {tx_hash.hex()}")
+            logging.info(f"SELL TRANSACTION SENT WITH HASH: {tx_hash.hex()}")
             break  # Exit retry loop on success
 
         except Exception as e:
@@ -259,7 +259,7 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                     # Sign and send the fallback transaction
                     signed_txn = web3.eth.account.sign_transaction(txn, private_key=WALLET_PRIVATE_KEY)
                     tx_hash = send_transaction(signed_txn)
-                    logging.info(f"Fallback sell transaction sent with hash: {tx_hash.hex()}")
+                    logging.info(f"FALLBACK SELL TRANSACTION SENT WITH HASH: {tx_hash.hex()}")
                     break  # Exit retry loop on fallback success
 
                 except Exception as fallback_e:
@@ -283,9 +283,9 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
                 return None, None
 
     # Wait for the transaction to be mined and check final ETH balance
-    logging.info(f"INITIAL: {initial_eth_balance} ETH")
+    logging.info(f"Initial ETH Balance: {initial_eth_balance} ETH")
     final_eth_balance = wait_for_balance_change(check_eth_balance, expected_increase=True)
-    logging.info(f"FINAL: {final_eth_balance} ETH")
+    logging.info(f"Final ETH Balance: {final_eth_balance} ETH")
     if final_eth_balance is None:
         logging.error("Failed to detect balance change after sell.")
         log_transaction({
@@ -298,8 +298,6 @@ def sell_token(token_address, token_amount, initial_eth_balance, trans_hash, use
 
     # Calculate profit/loss by comparing final ETH balance after sell with initial ETH balance before buy
     try:
-        logging.info(f"Calculating profit/loss: initial_eth_balance = {initial_eth_balance}, final_eth_balance = {final_eth_balance}")
-
         # Ensure balances are in the same unit for calculation
         initial_eth_balance_in_ether = web3.from_wei(initial_eth_balance, 'ether')
         final_eth_balance_in_ether = web3.from_wei(final_eth_balance, 'ether')

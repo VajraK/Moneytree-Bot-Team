@@ -15,7 +15,7 @@ parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 log_directory = os.path.join(parent_directory, 'logs/statistics')
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
-    logging.info(f"Created log directory: {log_directory}")
+    logging.info(f"s Created log directory: {log_directory}")
 
 # Set the log file path
 log_file_path = os.path.join(log_directory, 'transaction_logs.json')
@@ -37,22 +37,22 @@ def rotate_logs():
     if os.path.exists(log_file_path):
         archive_log_path = os.path.join(log_directory, f'transaction_logs_{timestamp}.json')
         shutil.move(log_file_path, archive_log_path)
-        logging.info(f"Log file rotated to: {archive_log_path}")
+        logging.info(f"s Log file rotated to: {archive_log_path}")
     else:
-        logging.info(f"No log file found to rotate at path: {log_file_path}")
+        logging.info(f"s No log file found to rotate at path: {log_file_path}")
         
     # Clean up old backups if they exceed the backup count
     log_files = [f for f in os.listdir(log_directory) if f.startswith('transaction_logs_') and f.endswith('.json')]
     log_files.sort(reverse=True)  # Sort by most recent
 
     if len(log_files) > backup_count:
-        logging.info(f"Found {len(log_files)} log files, cleaning up old ones...")
+        logging.info(f"s Found {len(log_files)} log files, cleaning up old ones...")
     
     # Remove oldest logs if they exceed backup count
     for old_log in log_files[backup_count:]:
         old_log_path = os.path.join(log_directory, old_log)
         os.remove(old_log_path)
-        logging.info(f"Deleted old log file: {old_log_path}")
+        logging.info(f"s Deleted old log file: {old_log_path}")
 
 # Function to check if a log rotation is needed (daily)
 def is_rotation_needed():
@@ -62,17 +62,14 @@ def is_rotation_needed():
         last_modified_time_local = last_modified_time.astimezone(local_tz)
         current_time_local = datetime.now(local_tz)
 
-        logging.info(f"Last log file modification time (local): {last_modified_time_local}")
-        logging.info(f"Current time (local): {current_time_local}")
-
         # Rotate if the log is from a previous day in local time
         if last_modified_time_local.date() < current_time_local.date():
-            logging.info("Log rotation needed")
+            logging.info("s Log rotation needed")
             return True
         else:
-            logging.info("Log rotation not needed")
+            logging.info("s Log rotation not needed")
     else:
-        logging.info("Log file does not exist, no rotation needed")
+        logging.info("s Log file does not exist, no rotation needed")
     return False
 
 # Function to load logs from a file path
@@ -82,13 +79,13 @@ def load_logs(file_path):
             with open(file_path, 'r') as file:
                 return json.load(file)
         except json.JSONDecodeError as e:
-            logging.error(f"Failed to decode JSON from {file_path}: {e}")
+            logging.error(f"s Failed to decode JSON from {file_path}: {e}")
             return []
     return []
 
 # Function to log or update transaction details to a JSON file
 def log_transaction(data):
-    logging.info("Starting transaction logging process...")
+    logging.info("s Starting transaction logging process...")
 
     # Rotate logs if needed
     if is_rotation_needed():
@@ -122,7 +119,7 @@ def log_transaction(data):
 
     if existing_entry:
         # Update the existing entry with new values
-        logging.info(f"Updating existing log entry for post_hash: {post_hash}")
+        logging.info(f"s Updating existing log entry for post_hash: {post_hash}")
         existing_entry.update({
             "wallet_name": data.get("wallet_name", existing_entry["wallet_name"]),
             "token_symbol": data.get("token_symbol", existing_entry["token_symbol"]),
@@ -162,24 +159,24 @@ def log_transaction(data):
             "profit_loss": data.get("profit_loss", "")  # Profit/loss (if success)
         }
         logs.append(log_entry)
-        logging.info(f"Created new log entry for post_hash: {post_hash}")
+        logging.info(f"s Created new log entry for post_hash: {post_hash}")
 
     # Write the updated current log back to the file
     try:
         with open(log_file_path, 'w') as file:
             json.dump(logs, file, indent=4)
-        logging.info(f"Logged transaction: {data}")
+        logging.info(f"s Logged transaction: {data}")
         
         # Optionally, update the previous and before previous day's logs if any entries were removed from them
         if previous_logs:
             with open(previous_log_file, 'w') as file:
                 json.dump(previous_logs, file, indent=4)
-            logging.info(f"Updated previous day's log: {previous_log_file}")
+            logging.info(f"s Updated previous day's log: {previous_log_file}")
         
         if before_previous_logs:
             with open(before_previous_log_file, 'w') as file:
                 json.dump(before_previous_logs, file, indent=4)
-            logging.info(f"Updated before previous day's log: {before_previous_log_file}")
+            logging.info(f"s Updated before previous day's log: {before_previous_log_file}")
 
     except Exception as e:
-        logging.error(f"Failed to write to log file: {e}")
+        logging.error(f"s Failed to write to log file: {e}")
