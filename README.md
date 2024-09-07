@@ -6,6 +6,12 @@
 - **Moneytree Tracking Bot (MTB):** Continuously monitors Ethereum wallets for transactions and sends relevant alerts to Telegram.
 - **Moneytree Trading Bot (MTdB):** Automatically executes buy and sell actions based on transaction data and market conditions.
 
+<p align="center">
+  <img src="static/MTdB.png" alt="Moneytree Bot Console" width="30%" />
+  <img src="static/MBC.png" alt="Moneytree Tracking Bot" width="30%" />
+  <img src="static/MTB.png" alt="Moneytree Trading Bot" width="30%" />
+</p>
+
 ## Features
 
 - **Real-time Ethereum transaction tracking**
